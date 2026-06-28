@@ -1,0 +1,1734 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>华东师范大学附属龙港科技中学 学生会人事管理系统</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none}
+  :root{
+    --primary:#1a1a2e;--primary-light:#16213e;--accent:#0f3460;
+    --gold:#e2b04a;--gold-light:#f0c85a;
+    --text:#ffffff;--text-secondary:#a0aec0;--text-dark:#1a202c;
+    --bg:#0a0a1a;--bg-card:rgba(255,255,255,0.05);
+    --border:rgba(255,255,255,0.08);--success:#48bb78;--danger:#fc8181;
+    --shadow:0 20px 60px rgba(0,0,0,0.3);
+    /* Liquid Glass Dock variables */
+    --dock-bg-rgb:22,27,34;
+    --slider-tint-rgb:139,148,158;
+    --inner-shadow-color:rgba(190,210,255,0.35);
+    --inner-shadow-blur:20px;
+    --inner-shadow-spread:-5px;
+    --outer-shadow-blur:24px;
+    --clipL:4px;--clipW:79px;--clipT:3.5px;--clipH:48px;
+    --theme-color:rgb(226,176,74);
+    --fg-color:#e6edf3;
+    --bg-color:#0d1117;
+  }
+
+  body{font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;transition:background .4s ease,color .4s ease}
+  .bg-animation{position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;overflow:hidden}
+  .bg-animation .circle{position:absolute;border-radius:50%;background:radial-gradient(circle,rgba(15,52,96,0.15),transparent);animation:float 20s infinite ease-in-out}
+  .bg-animation .circle:nth-child(1){width:600px;height:600px;top:-200px;left:-100px;animation-delay:0s}
+  .bg-animation .circle:nth-child(2){width:400px;height:400px;bottom:-100px;right:-50px;animation-delay:-7s}
+  .bg-animation .circle:nth-child(3){width:300px;height:300px;top:50%;left:50%;animation-delay:-14s}
+  @keyframes float{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(30px,-30px) scale(1.05)}66%{transform:translate(-20px,20px) scale(0.95)}}
+
+  /* ===== LOGIN PAGE ===== */
+  #loginPage{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+  .login-container{width:100%;max-width:440px;position:relative}
+  .login-header{text-align:center;margin-bottom:40px}
+  .login-header .logo{width:72px;height:72px;margin:0 auto 20px;background:linear-gradient(135deg,var(--gold),var(--gold-light));border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:700;color:var(--primary);box-shadow:0 8px 32px rgba(226,176,74,0.3)}
+  .login-header h1{font-size:26px;font-weight:600;letter-spacing:2px;margin-bottom:8px}
+  .login-header p{color:var(--text-secondary);font-size:14px;letter-spacing:4px}
+  .login-card{background:var(--bg-card);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:20px;padding:40px;box-shadow:var(--shadow)}
+  .form-group{margin-bottom:24px}
+  .form-group label{display:block;font-size:13px;color:var(--text-secondary);margin-bottom:8px;font-weight:500;letter-spacing:1px}
+  .form-group input,.form-group select{width:100%;padding:14px 16px;background:rgba(128,128,128,0.06);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:15px;transition:all .3s ease;outline:none}
+  .form-group input::placeholder{color:rgba(128,128,128,0.4)}
+  .form-group input:focus,.form-group select:focus{border-color:var(--gold);background:rgba(128,128,128,0.1);box-shadow:0 0 0 3px rgba(226,176,74,0.1)}
+  .form-group select option{background:var(--primary);color:var(--text)}
+  .role-selector{display:flex;gap:12px;margin-bottom:28px}
+  .role-btn{flex:1;padding:16px;background:rgba(128,128,128,0.04);border:2px solid var(--border);border-radius:14px;cursor:pointer;transition:all .3s ease;text-align:center;position:relative}
+  .role-btn:hover{border-color:rgba(226,176,74,0.3);background:rgba(128,128,128,0.06)}
+  .role-btn.active{border-color:var(--gold);background:rgba(226,176,74,0.08)}
+  .role-btn.active::after{content:'';position:absolute;bottom:-2px;left:50%;transform:translateX(-50%);width:30px;height:3px;background:var(--gold);border-radius:2px}
+  .role-btn .role-icon{font-size:24px;margin-bottom:8px}
+  .role-btn .role-title{font-size:15px;font-weight:600;margin-bottom:4px}
+  .role-btn .role-desc{font-size:11px;color:var(--text-secondary)}
+  .login-btn{width:100%;padding:16px;background:linear-gradient(135deg,var(--gold),var(--gold-light));color:var(--primary);font-size:16px;font-weight:700;border:none;border-radius:14px;cursor:pointer;transition:all .3s ease;letter-spacing:2px;margin-top:8px}
+  .login-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(226,176,74,0.3)}
+  .login-error{color:var(--danger);font-size:12px;text-align:center;margin-top:12px;display:none}
+
+  /* ===== MAIN PAGE ===== */
+  #mainPage{display:none;min-height:100vh;padding-bottom:110px}
+  .main-content{max-width:1400px;margin:0 auto;padding:32px}
+
+  /* ===== TAB PAGES ===== */
+  .tab-page{display:none}
+  .tab-page.active{display:block}
+
+  /* ===== TOPBAR (for Tab4 "我的") ===== */
+  .topbar-card{background:var(--bg-card);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:16px;padding:24px 32px;margin-bottom:28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+  .topbar-left{display:flex;align-items:center;gap:16px}
+  .topbar-logo{width:44px;height:44px;background:linear-gradient(135deg,var(--gold),var(--gold-light));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:var(--primary)}
+  .topbar-title{font-size:17px;font-weight:600;letter-spacing:1px}
+  .topbar-right{display:flex;align-items:center;gap:20px}
+  .user-info{display:flex;align-items:center;gap:10px}
+  .user-avatar{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#1a5276);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600}
+  .user-name{font-size:14px;font-weight:500}
+  .user-role{font-size:11px;color:var(--gold);background:rgba(226,176,74,0.12);padding:2px 8px;border-radius:6px}
+  .logout-btn{padding:8px 20px;background:rgba(128,128,128,0.06);border:1px solid var(--border);border-radius:10px;color:var(--text-secondary);font-size:13px;cursor:pointer;transition:all .3s}
+  .logout-btn:hover{background:rgba(252,129,129,0.1);border-color:rgba(252,129,129,0.3);color:var(--danger)}
+
+  /* ===== PROFILE CARD ===== */
+  .profile-card{background:var(--bg-card);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:16px;padding:28px 32px;margin-bottom:28px;display:flex;align-items:center;gap:32px;flex-wrap:wrap}
+  .profile-avatar{width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,var(--gold),var(--gold-light));display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:var(--primary);flex-shrink:0;box-shadow:0 4px 16px rgba(226,176,74,0.2)}
+  .profile-info{flex:1;min-width:200px}
+  .profile-name{font-size:22px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .profile-name .role-badge{font-size:12px;padding:3px 10px;border-radius:6px;background:rgba(226,176,74,0.12);color:var(--gold);font-weight:500}
+  .profile-fields{display:flex;flex-wrap:wrap;gap:8px 28px}
+  .profile-field{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--text-secondary)}
+  .profile-field .label{opacity:0.55;font-size:12px;letter-spacing:1px;min-width:60px}
+  .profile-field .value{color:var(--text);font-weight:500}
+  .stats-row{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;margin-bottom:32px}
+  .stats-row.cols-4{grid-template-columns:repeat(4,1fr)}
+  .stat-card{background:var(--bg-card);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:16px;padding:24px;position:relative;overflow:hidden;transition:transform .3s}
+  .stat-card:hover{transform:translateY(-4px)}
+  .stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+  .stat-card:nth-child(1)::before{background:linear-gradient(90deg,var(--gold),var(--gold-light))}
+  .stat-card:nth-child(2)::before{background:linear-gradient(90deg,#48bb78,#68d391)}
+  .stat-card:nth-child(3)::before{background:linear-gradient(90deg,#4299e1,#63b3ed)}
+  .stat-card:nth-child(4)::before{background:linear-gradient(90deg,#ed8936,#f6ad55)}
+  .stat-label{font-size:13px;color:var(--text-secondary);margin-bottom:8px;letter-spacing:1px}
+  .stat-value{font-size:32px;font-weight:700}
+  .stat-sub{font-size:12px;color:var(--text-secondary);margin-top:4px}
+
+  .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+  .section-title{font-size:20px;font-weight:600;letter-spacing:1px}
+  .action-buttons{display:flex;gap:12px;flex-wrap:wrap}
+  .btn{padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;transition:all .3s;border:none;display:flex;align-items:center;gap:6px;letter-spacing:1px}
+  .btn-primary{background:linear-gradient(135deg,var(--gold),var(--gold-light));color:var(--primary)}
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(226,176,74,0.3)}
+  .btn-secondary{background:rgba(128,128,128,0.06);color:var(--text);border:1px solid var(--border)}
+  .btn-secondary:hover{background:rgba(128,128,128,0.1)}
+  .btn-danger{background:rgba(252,129,129,0.15);color:var(--danger);border:1px solid rgba(252,129,129,0.2)}
+  .btn-danger:hover{background:rgba(252,129,129,0.25)}
+  .btn-sm{padding:6px 12px;font-size:12px;border-radius:8px}
+
+  .table-container{background:var(--bg-card);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--shadow)}
+  .table-toolbar{padding:20px 24px;display:flex;align-items:center;gap:16px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+  .search-box{flex:1;max-width:360px;position:relative}
+  .search-box input{width:100%;padding:10px 16px 10px 40px;background:rgba(128,128,128,0.06);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;outline:none;transition:all .3s}
+  .search-box input:focus{border-color:var(--gold);background:rgba(128,128,128,0.1)}
+  .search-box input::placeholder{color:rgba(128,128,128,0.4)}
+  .search-box::before{content:'\1F50D';position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px}
+  .filter-group{display:flex;gap:8px;flex-wrap:wrap}
+  .filter-btn{padding:8px 16px;background:rgba(128,128,128,0.04);border:1px solid var(--border);border-radius:8px;color:var(--text-secondary);font-size:12px;cursor:pointer;transition:all .3s}
+  .filter-btn:hover,.filter-btn.active{background:rgba(226,176,74,0.1);border-color:rgba(226,176,74,0.3);color:var(--gold)}
+
+  table{width:100%;border-collapse:collapse}
+  thead th{padding:14px 20px;text-align:left;font-size:12px;font-weight:600;color:var(--text-secondary);letter-spacing:1px;text-transform:uppercase;background:rgba(128,128,128,0.02);border-bottom:1px solid var(--border)}
+  tbody td{padding:16px 20px;font-size:14px;border-bottom:1px solid var(--border);vertical-align:middle}
+  tbody tr{transition:background .2s}
+  tbody tr:hover{background:rgba(128,128,128,0.03)}
+  tbody tr:last-child td{border-bottom:none}
+  .member-name{font-weight:600;display:flex;align-items:center;gap:10px}
+  .member-avatar{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0}
+  .dept-tag{display:inline-block;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:500}
+  .dept-秘书处{background:rgba(226,176,74,0.12);color:var(--gold)}
+  .dept-学习部{background:rgba(66,153,225,0.12);color:#63b3ed}
+  .dept-文体部{background:rgba(72,187,120,0.12);color:#68d391}
+  .dept-体育部{background:rgba(72,187,120,0.12);color:#68d391}
+  .dept-宣传部{background:rgba(237,137,54,0.12);color:#f6ad55}
+  .dept-纪检部{background:rgba(252,129,129,0.12);color:#fc8181}
+  .dept-生活部{background:rgba(72,187,187,0.12);color:#4fd1c5}
+  .dept-社联会{background:rgba(159,122,234,0.12);color:#b794f4}
+  .position-tag{font-size:12px;font-weight:500;padding:4px 10px;border-radius:6px}
+  .position-部长{background:rgba(226,176,74,0.15);color:var(--gold);border:1px solid rgba(226,176,74,0.2)}
+  .position-副部长{background:rgba(159,122,234,0.15);color:#b794f4;border:1px solid rgba(159,122,234,0.2)}
+  .position-干事{background:rgba(128,128,128,0.06);color:var(--text-secondary);border:1px solid var(--border)}
+  .status-active{color:var(--success)}
+  .status-inactive{color:var(--text-secondary)}
+  .actions-cell{display:flex;gap:8px}
+  .icon-btn{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);background:rgba(128,128,128,0.04);cursor:pointer;transition:all .2s;font-size:14px;color:var(--text-secondary)}
+  .icon-btn:hover{background:rgba(128,128,128,0.1);color:var(--text)}
+  .icon-btn.delete:hover{background:rgba(252,129,129,0.15);color:var(--danger);border-color:rgba(252,129,129,0.3)}
+  .table-footer{padding:16px 24px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border);flex-wrap:wrap;gap:8px}
+  .table-footer .info{font-size:13px;color:var(--text-secondary)}
+  .pagination{display:flex;gap:6px}
+  .page-btn{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);background:transparent;color:var(--text-secondary);cursor:pointer;transition:all .2s;font-size:13px}
+  .page-btn:hover,.page-btn.active{background:rgba(226,176,74,0.1);border-color:rgba(226,176,74,0.3);color:var(--gold)}
+
+  /* ===== MODAL ===== */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(8px);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px}
+  .modal-overlay.show{display:flex}
+  .modal{background:var(--primary-light);border:1px solid var(--border);border-radius:20px;width:100%;max-width:560px;box-shadow:0 24px 80px rgba(0,0,0,0.5);animation:modalIn .3s ease}
+  @keyframes modalIn{from{opacity:0;transform:translateY(20px) scale(0.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+  .modal-header{padding:24px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .modal-header h2{font-size:18px;font-weight:600}
+  .modal-close{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:rgba(128,128,128,0.06);border:1px solid var(--border);cursor:pointer;color:var(--text-secondary);font-size:18px;transition:all .2s}
+  .modal-close:hover{background:rgba(252,129,129,0.15);color:var(--danger)}
+  .modal-body{padding:28px}
+  .modal-body .form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .modal-body .form-group{margin-bottom:20px}
+  .modal-footer{padding:20px 28px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:12px}
+
+  /* ===== DEPARTMENTS PAGE ===== */
+  .dept-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-bottom:32px}
+  .dept-card{background:var(--bg-card);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:16px;padding:24px;transition:all .3s;cursor:pointer}
+  .dept-card:hover{transform:translateY(-4px);border-color:rgba(226,176,74,0.2)}
+  .dept-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+  .dept-card-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px}
+  .dept-card-count{font-size:28px;font-weight:700}
+  .dept-card-name{font-size:16px;font-weight:600;margin-bottom:4px}
+  .dept-card-desc{font-size:12px;color:var(--text-secondary)}
+  .dept-progress{height:4px;background:rgba(128,128,128,0.06);border-radius:2px;margin-top:12px;overflow:hidden}
+  .dept-progress-bar{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--gold),var(--gold-light))}
+
+  /* ===== TOAST ===== */
+  .toast{position:fixed;top:24px;right:24px;z-index:2000;padding:14px 24px;border-radius:12px;font-size:14px;font-weight:500;transform:translateX(120%);transition:transform .4s cubic-bezier(.4,0,.2,1);display:flex;align-items:center;gap:10px}
+  .toast.show{transform:translateX(0)}
+  .toast-success{background:rgba(72,187,120,0.15);border:1px solid rgba(72,187,120,0.3);color:var(--success)}
+  .toast-error{background:rgba(252,129,129,0.15);border:1px solid rgba(252,129,129,0.3);color:var(--danger)}
+
+  /* ===== RESPONSIVE ===== */
+  @media(max-width:1024px){.stats-row{grid-template-columns:repeat(2,1fr)}.dept-grid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:768px){.stats-row{grid-template-columns:1fr}.dept-grid{grid-template-columns:1fr}.main-content{padding:16px}.table-toolbar{flex-wrap:wrap}.modal-body .form-row{grid-template-columns:1fr}.role-selector{flex-direction:column}}
+  @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+  /* ==============================================
+     Liquid Glass Dock - Bottom Navigation
+     ============================================== */
+  .bottom-controls{position:fixed;left:calc(50% - 162px);bottom:24px;z-index:1000;pointer-events:none}
+  .dock-wrapper{width:324px;height:55px;pointer-events:auto}
+  .dock-container{width:100%;height:100%;position:relative;transform-origin:center center;pointer-events:auto;--innerGlowOp:0;--edgeGlowOp:0;--glowRadius:1;touch-action:none}
+  .dock-shadow-layer{position:absolute;top:2px;bottom:2px;left:8px;right:8px;z-index:0;pointer-events:none;border-radius:25px;box-shadow:0 16px 32px 2px rgba(0,0,0,0.15),0 4px 12px 1px rgba(0,0,0,0.08)}
+  .dock-base{position:absolute;inset:0;z-index:1;overflow:hidden;padding:4px;background:rgba(var(--dock-bg-rgb),0.23);transform:translateZ(0);-webkit-mask-image:var(--mask-solid);mask-image:var(--mask-solid);-webkit-mask-size:100% 100%;mask-size:100% 100%;-webkit-backdrop-filter:url(#dock-glass-filter) saturate(1.5);backdrop-filter:url(#dock-glass-filter) saturate(1.5)}
+  .glow-layer{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none;background:radial-gradient(calc(100px * var(--glowRadius)) circle at var(--innerX,-999px) var(--innerY,-999px),rgba(255,255,255,calc(0.5 * var(--innerGlowOp))) 0%,rgba(255,255,255,calc(0.1 * var(--innerGlowOp))) 50%,transparent 80%);-webkit-mask-image:var(--mask-solid);mask-image:var(--mask-solid);-webkit-mask-size:100% 100%;mask-size:100% 100%}
+  .dock-base::after{content:"";position:absolute;inset:0;z-index:10;pointer-events:none;background:radial-gradient(calc(120px * var(--glowRadius)) circle at var(--edgeX,-999px) var(--edgeY,-999px),rgba(255,255,255,calc(0.7 * var(--edgeGlowOp))) 0%,rgba(255,255,255,calc(0.15 * var(--edgeGlowOp))) 50%,transparent 80%),linear-gradient(135deg,rgba(255,255,255,0.4) 0%,transparent 50%),linear-gradient(-35deg,rgba(255,255,255,0.4) 0%,transparent 50%);mix-blend-mode:plus-lighter;-webkit-mask-image:var(--mask-hollow);mask-image:var(--mask-hollow);-webkit-mask-size:100% 100%;mask-size:100% 100%}
+  .ripple-layer{position:absolute;inset:0;z-index:2;overflow:hidden;pointer-events:none;-webkit-mask-image:var(--mask-solid);mask-image:var(--mask-solid);-webkit-mask-size:100% 100%;mask-size:100% 100%}
+  .ripple-wave{position:absolute;width:120px;height:120px;border-radius:50%;pointer-events:none;opacity:1;background:radial-gradient(circle,rgba(255,255,255,0.7) 0%,rgba(255,255,255,0) 60%);transform:translate(-50%,-50%) scale(0);animation:ripple-anim 0.6s cubic-bezier(0.25,1,0.5,1) forwards}
+  @keyframes ripple-anim{to{opacity:0;transform:translate(-50%,-50%) scale(2.2)}}
+  .dock-items-wrap,.dock-active-layer{position:absolute;inset:0;z-index:998}
+  .dock-items-wrap{color:var(--fg-color);touch-action:none;-webkit-mask-image:linear-gradient(#000,#000),var(--slider-mask-solid);mask-image:linear-gradient(#000,#000),var(--slider-mask-solid);-webkit-mask-size:100% 100%,var(--clipW) var(--clipH);mask-size:100% 100%,var(--clipW) var(--clipH);-webkit-mask-position:0 0,var(--clipL) var(--clipT);mask-position:0 0,var(--clipL) var(--clipT);-webkit-mask-repeat:no-repeat,no-repeat;mask-repeat:no-repeat,no-repeat;-webkit-mask-composite:destination-out;mask-composite:exclude}
+  .dock-item{position:absolute;top:3.5px;width:81.5px;height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:inherit;cursor:pointer;z-index:3;transform-origin:center center;transition:transform 0.3s cubic-bezier(0.25,1,0.5,1)}
+  .dock-item:nth-child(1){left:3px}
+  .dock-item:nth-child(2){left:83px}
+  .dock-item:nth-child(3){left:162px}
+  .dock-item:nth-child(4){left:242px}
+  .dock-item svg{width:25px;height:25px}
+  .dock-item span{margin-top:4px;font-size:10px;font-weight:800;letter-spacing:0.5px}
+  .dock-active-layer{color:var(--theme-color);opacity:1;pointer-events:none;-webkit-mask-image:var(--slider-mask-solid);mask-image:var(--slider-mask-solid);-webkit-mask-size:var(--clipW) var(--clipH);mask-size:var(--clipW) var(--clipH);-webkit-mask-position:var(--clipL) var(--clipT);mask-position:var(--clipL) var(--clipT);-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
+  .dock-container.expanding .dock-active-layer .dock-item{transform:scale(1.1)}
+  #frosted-slider{position:absolute;top:3.5px;left:4px;width:79px;height:48px;z-index:999;overflow:hidden;opacity:1;pointer-events:auto;touch-action:none;background-color:rgba(var(--slider-tint-rgb),0.15);box-shadow:0 2px 8px rgba(0,0,0,0.06);transform:translateZ(0);-webkit-mask-image:var(--slider-mask-solid);mask-image:var(--slider-mask-solid);-webkit-mask-size:100% 100%;mask-size:100% 100%;-webkit-backdrop-filter:url(#liquid-glass-dispersion-filter);backdrop-filter:url(#liquid-glass-dispersion-filter);transition:background-color 0.4s ease,box-shadow 0.4s ease}
+  #frosted-slider.expanding{background-color:rgba(var(--slider-tint-rgb),0.06);box-shadow:inset 0 0 var(--inner-shadow-blur) var(--inner-shadow-spread) var(--inner-shadow-color),0 2px var(--outer-shadow-blur) rgba(0,0,0,0.2)}
+  #frosted-slider::after{content:"";position:absolute;inset:0;z-index:9999;pointer-events:none;opacity:0;background:linear-gradient(135deg,rgba(255,255,255,0.9) 0%,transparent 50%),linear-gradient(-35deg,rgba(255,255,255,0.9) 0%,transparent 50%);mix-blend-mode:plus-lighter;-webkit-mask-image:var(--slider-mask-hollow);mask-image:var(--slider-mask-hollow);-webkit-mask-size:100% 100%;mask-size:100% 100%;transition:opacity 0.4s ease}
+  #frosted-slider.expanding::after{opacity:1}
+
+  @media(max-width:430px){.bottom-controls{bottom:18px}}
+
+/* ===== SETTINGS PAGE (Tab4) ===== */
+.settings-section{display:flex;align-items:center;gap:16px;padding:24px 0 16px}
+.settings-header-icon{width:56px;height:56px;border-radius:14px;background:rgba(66,153,225,0.15);display:flex;align-items:center;justify-content:center;color:#4299e1;flex-shrink:0}
+.settings-header-text .settings-title{font-size:22px;font-weight:700;margin-bottom:4px}
+.settings-header-text .settings-subtitle{font-size:13px;color:var(--text-secondary);line-height:1.5}
+.theme-choice-row{display:flex;gap:16px;margin:16px 0 24px}
+.theme-choice-card{flex:1;border-radius:16px;overflow:hidden;border:2px solid var(--border);cursor:pointer;transition:all .3s ease;padding:12px}
+.theme-choice-card:hover{border-color:rgba(226,176,74,0.3)}
+.theme-choice-card.active{border-color:var(--gold)}
+.theme-preview{width:100%;aspect-ratio:9/16;max-height:180px;border-radius:10px;overflow:hidden;position:relative;background:#fff}
+.theme-preview-dark{background:#1a1a2e}
+.theme-preview .tp-bar{height:14%;background:rgba(128,128,128,0.15)}
+.theme-preview-dark .tp-bar{background:rgba(255,255,255,0.06)}
+.theme-preview .tp-content{padding:12px}
+.theme-preview .tp-line{height:6px;border-radius:3px;background:rgba(128,128,128,0.15);margin-bottom:8px}
+.theme-preview-dark .tp-line{background:rgba(255,255,255,0.08)}
+.theme-preview .tp-line-short{width:60%}
+.theme-choice-label{display:flex;align-items:center;justify-content:space-between;padding:10px 4px 0;font-size:14px;font-weight:600}
+.theme-check{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;transition:all .3s}
+.theme-choice-card.active .theme-check{border-color:var(--gold);background:var(--gold)}
+.theme-choice-card.active .theme-check::after{content:'✓';color:var(--primary);font-size:13px;font-weight:700}
+.settings-group{margin-top:24px}
+.settings-group-title{font-size:12px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:600}
+.settings-item{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;font-size:15px;font-weight:500;transition:all .3s}
+.settings-item:first-of-type{border-radius:12px}
+.toggle{position:relative;display:inline-block;width:50px;height:28px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:rgba(128,128,128,0.3);border-radius:14px;cursor:pointer;transition:all .3s}
+.toggle-slider::before{content:'';position:absolute;width:22px;height:22px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:all .3s;box-shadow:0 1px 3px rgba(0,0,0,0.2)}
+.toggle input:checked+.toggle-slider{background:#4299e1}
+.toggle input:checked+.toggle-slider::before{transform:translateX(22px)}
+
+/* ===== LIGHT MODE ===== */
+html.light-mode{
+  --bg:#f4f4f7;--bg-card:rgba(255,255,255,0.85);--border:rgba(0,0,0,0.08);
+  --text:#1a202c;--text-secondary:#4a5568;--text-dark:#1a202c;
+  --primary:#f7fafc;--primary-light:#edf2f7;--accent:#2d3748;
+  --gold:#b8860b;--gold-light:#d4a017;--success:#38a169;--danger:#e53e3e;
+  --shadow:0 20px 60px rgba(0,0,0,0.08);
+  --fg-color:#1a202c;--bg-color:#f4f4f7;
+  --dock-bg-rgb:255,255,255;
+  --slider-tint-rgb:0,0,0;
+  --inner-shadow-color:#ffffff;
+}
+html.light-mode body{background:radial-gradient(circle at 20% 18%,rgba(4,178,133,0.06),transparent 34%),radial-gradient(circle at 82% 24%,rgba(117,92,255,0.04),transparent 32%),radial-gradient(circle at 62% 86%,rgba(255,159,10,0.04),transparent 28%),var(--bg)}
+html.light-mode .bg-animation .circle{background:radial-gradient(circle,rgba(4,178,133,0.06),transparent)}
+html.light-mode .login-header .logo{box-shadow:0 8px 32px rgba(184,134,11,0.2)}
+html.light-mode .login-card{box-shadow:0 20px 60px rgba(0,0,0,0.08)}
+html.light-mode .topbar-card{background:rgba(255,255,255,0.85)}
+html.light-mode .profile-card{background:rgba(255,255,255,0.85)}
+html.light-mode .stat-card{background:rgba(255,255,255,0.85)}
+html.light-mode .table-container{background:rgba(255,255,255,0.85)}
+html.light-mode .settings-item{background:rgba(255,255,255,0.85)}
+html.light-mode .settings-header-icon{background:rgba(66,153,225,0.12)}
+html.light-mode .theme-choice-card{background:rgba(255,255,255,0.5)}
+html.light-mode .dept-card{background:rgba(255,255,255,0.85)}
+html.light-mode .dept-card:hover{background:rgba(255,255,255,0.95)}
+html.light-mode .modal{background:#fff;color:#1a202c}
+html.light-mode .modal-header,.modal-body,.modal-footer{border-color:rgba(0,0,0,0.06)}
+html.light-mode .form-group input,html.light-mode .form-group select{background:rgba(0,0,0,0.04);border-color:rgba(0,0,0,0.1);color:#1a202c}
+html.light-mode .form-group input::placeholder{color:rgba(0,0,0,0.3)}
+html.light-mode .form-group label{color:#4a5568}
+html.light-mode .form-group select option{background:#fff;color:#1a202c}
+html.light-mode .role-btn{background:rgba(0,0,0,0.03);border-color:rgba(0,0,0,0.1)}
+html.light-mode .role-btn:hover{background:rgba(0,0,0,0.05)}
+html.light-mode .role-btn.active{border-color:var(--gold);background:rgba(184,134,11,0.08)}
+html.light-mode .btn-secondary{background:rgba(0,0,0,0.04);border-color:rgba(0,0,0,0.1);color:#4a5568}
+html.light-mode .filter-btn{background:rgba(0,0,0,0.04);border-color:rgba(0,0,0,0.1);color:#4a5568}
+html.light-mode .filter-btn.active{background:rgba(184,134,11,0.1);border-color:rgba(184,134,11,0.3);color:#b8860b}
+html.light-mode .search-box input{background:rgba(0,0,0,0.04);border-color:rgba(0,0,0,0.1);color:#1a202c}
+html.light-mode .search-box input::placeholder{color:rgba(0,0,0,0.3)}
+html.light-mode .search-box::before{content:''}
+html.light-mode thead th{background:rgba(0,0,0,0.02);color:#4a5568}
+html.light-mode tbody td{color:#4a5568;border-color:rgba(0,0,0,0.05)}
+html.light-mode .logout-btn{background:rgba(0,0,0,0.05);color:#4a5568;border-color:rgba(0,0,0,0.08)}
+html.light-mode .icon-btn{background:rgba(0,0,0,0.04);border-color:rgba(0,0,0,0.08);color:#4a5568}
+html.light-mode .icon-btn.delete:hover{background:rgba(229,62,62,0.1);color:#e53e3e;border-color:rgba(229,62,62,0.2)}
+html.light-mode .page-btn{background:transparent;border-color:rgba(0,0,0,0.08);color:#4a5568}
+html.light-mode .page-btn.active{background:rgba(184,134,11,0.1);border-color:rgba(184,134,11,0.3);color:#b8860b}
+html.light-mode .table-footer{border-color:rgba(0,0,0,0.05)}
+html.light-mode .table-toolbar{border-color:rgba(0,0,0,0.05)}
+html.light-mode .dock-shadow-layer{box-shadow:0 16px 32px 2px rgba(0,0,0,0.1),0 4px 12px 1px rgba(0,0,0,0.05)}
+html.light-mode #frosted-slider{box-shadow:0 2px 8px rgba(0,0,0,0.05)}
+html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shadow-blur) var(--inner-shadow-spread) var(--inner-shadow-color),0 2px var(--outer-shadow-blur) rgba(0,0,0,0.1)}
+</style>
+</head>
+<body>
+<div class="bg-animation"><div class="circle"></div><div class="circle"></div><div class="circle"></div></div>
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<!-- ===== LOGIN ===== -->
+<div id="loginPage">
+  <div class="login-container">
+    <div class="login-header">
+      <div class="logo">SU</div>
+      <h1 style="font-size:20px;letter-spacing:2px">华东师范大学附属龙港科技中学</h1>
+      <p style="margin-top:14px;font-size:26px;font-weight:600;color:var(--text);letter-spacing:3px">学生会人事管理系统</p>
+    </div>
+    <div class="login-card">
+      <div class="form-group">
+        <label>用户名</label>
+        <input type="text" id="loginUser" placeholder="请输入用户名" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>密码</label>
+        <input type="password" id="loginPass" placeholder="请输入密码">
+      </div>
+      <label style="font-size:13px;color:var(--text-secondary);display:block;margin-bottom:12px;letter-spacing:1px">选择身份</label>
+      <div class="role-selector">
+        <div class="role-btn active" onclick="selectRole('部长')">
+          <div class="role-icon">👔</div>
+          <div class="role-title">部长</div>
+          <div class="role-desc">管理权限</div>
+        </div>
+        <div class="role-btn" onclick="selectRole('成员')">
+          <div class="role-icon">👤</div>
+          <div class="role-title">成员</div>
+          <div class="role-desc">查看权限</div>
+        </div>
+      </div>
+      <button class="login-btn" onclick="handleLogin()">登 录</button>
+      <div class="login-error" id="loginError">用户名或密码错误，或不在系统名单中</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MAIN (4-Tab Layout) ===== -->
+<div id="mainPage">
+  <div class="main-content">
+
+    <!-- ===== TAB 1: 部门管理 ===== -->
+    <div class="tab-page active" id="tabPage1">
+      <!-- Profile Card -->
+      <div class="profile-card" id="profileCard">
+        <div class="profile-avatar" id="profileAvatar">A</div>
+        <div class="profile-info">
+          <div class="profile-name">
+            <span id="profileName">管理员</span>
+            <span class="role-badge" id="profileRole">部长</span>
+          </div>
+          <div class="profile-fields" id="profileFields">
+            <div class="profile-field"><span class="label">部门</span><span class="value" id="profileDept">--</span></div>
+            <div class="profile-field"><span class="label">职位</span><span class="value" id="profilePosition">管理员</span></div>
+            <div class="profile-field"><span class="label">负责</span><span class="value" id="profileDuty">系统管理</span></div>
+            <div class="profile-field"><span class="label">入职</span><span class="value" id="profileJoin">--</span></div>
+            <div class="profile-field"><span class="label">离职</span><span class="value" id="profileLeave">--</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row" id="adminStats">
+        <div class="stat-card"><div class="stat-label" id="statTotalLabel">总人数</div><div class="stat-value" id="statTotal">0</div><div class="stat-sub" id="statTotalSub">全部成员</div></div>
+        <div class="stat-card"><div class="stat-label" id="statActiveLabel">在任成员</div><div class="stat-value" id="statActive">0</div><div class="stat-sub">当前在岗</div></div>
+      </div>
+
+      <!-- Members Table with full CRUD -->
+      <div class="section-header">
+        <div class="action-buttons" id="adminActions">
+          <button class="btn btn-primary" id="addBtn" onclick="openModal('add')">＋ 添加成员</button>
+          <button class="btn btn-secondary" id="importBtnWrap" onclick="document.getElementById('importFile').click()">📥 导入Excel</button>
+          <button class="btn btn-secondary" id="exportBtnWrap" onclick="exportData()">📤 导出数据</button>
+          <input type="file" id="importFile" accept=".xlsx,.xls,.csv" style="display:none" onchange="importExcel(event)">
+        </div>
+      </div>
+      <div class="table-container">
+        <div class="table-toolbar" id="adminToolbar">
+          <div class="search-box"><input type="text" id="searchInput" placeholder="搜索姓名、部门、职责..." oninput="renderTable()"></div>
+          <div class="filter-group" id="filterBtns"></div>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>姓名</th><th id="accountHeader">账号</th><th>部门</th><th>职位</th><th>主要负责</th><th>入职时间</th><th>离职时间</th><th>状态</th><th id="actionHeader">操作</th>
+              </tr>
+            </thead>
+            <tbody id="memberTable1"></tbody>
+          </table>
+        </div>
+        <div class="table-footer">
+          <div class="info" id="tableInfo1">共 0 条记录</div>
+          <div class="pagination" id="pagination1"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TAB 2: 部门概览 ===== -->
+    <div class="tab-page" id="tabPage2">
+      <div class="section-header">
+        <div class="section-title">部门概览</div>
+      </div>
+      <div class="dept-grid" id="deptGrid"></div>
+    </div>
+
+    <!-- ===== TAB 3: 成员列表（只读） ===== -->
+    <div class="tab-page" id="tabPage3">
+      <div class="section-header">
+        <div class="section-title">成员列表</div>
+      </div>
+      <div class="table-container">
+        <div class="table-toolbar" id="memberSearchBar" style="display:none">
+          <div class="search-box" style="max-width:none"><input type="text" id="memberSearchInput" placeholder="搜索姓名、部门、职责..." oninput="renderTable()"></div>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>姓名</th><th>部门</th><th>职位</th><th>主要负责</th><th>入职时间</th><th>离职时间</th><th>状态</th>
+              </tr>
+            </thead>
+            <tbody id="memberTable3"></tbody>
+          </table>
+        </div>
+        <div class="table-footer">
+          <div class="info" id="tableInfo3">共 0 条记录</div>
+          <div class="pagination" id="pagination3"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TAB 4: 设置 ===== -->
+    <div class="tab-page" id="tabPage4">
+      <!-- Topbar banner -->
+      <div class="topbar-card">
+        <div class="topbar-left">
+          <div class="topbar-logo">SU</div>
+          <span class="topbar-title">华东师范大学附属龙港科技中学 学生会人事管理系统</span>
+        </div>
+        <div class="topbar-right">
+          <div class="user-info">
+            <div class="user-avatar" id="avatarLetter">A</div>
+            <div>
+              <div class="user-name" id="topbarName">Admin</div>
+              <div class="user-role" id="topbarRole">部长</div>
+            </div>
+          </div>
+          <button class="logout-btn" onclick="handleLogout()">退出登录</button>
+        </div>
+      </div>
+
+      <!-- 外观设置 (Appearance Settings - iOS style) -->
+      <div class="settings-section">
+        <div class="settings-header-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="28" height="28">
+            <circle cx="13.5" cy="6.5" r="2.5"/><path d="M17 2h4v4"/><path d="M15 4l5.5 5.5"/><circle cx="6.5" cy="13.5" r="2.5"/><path d="M2 17h4v4"/><path d="M4 15l5.5 5.5"/><circle cx="13.5" cy="17.5" r="2.5"/><path d="M22 17h-4v4"/><path d="M15 19l5.5-5.5"/><circle cx="6.5" cy="6.5" r="2.5"/><path d="M2 7h4V3"/><path d="M4 9L9.5 3.5"/>
+          </svg>
+        </div>
+        <div class="settings-header-text">
+          <div class="settings-title">外观</div>
+          <div class="settings-subtitle">自定义显示模式，打造你的独特风格</div>
+        </div>
+      </div>
+
+      <!-- 主题选择卡片 -->
+      <div class="theme-choice-row">
+        <div class="theme-choice-card" id="themeCardLight" onclick="setTheme('light')">
+          <div class="theme-preview theme-preview-light">
+            <div class="tp-bar"></div>
+            <div class="tp-content">
+              <div class="tp-line tp-line-short"></div>
+              <div class="tp-line"></div>
+              <div class="tp-line tp-line-short"></div>
+            </div>
+          </div>
+          <div class="theme-choice-label">
+            <span>浅色</span>
+            <div class="theme-check" id="checkLight"></div>
+          </div>
+        </div>
+        <div class="theme-choice-card" id="themeCardDark" onclick="setTheme('dark')">
+          <div class="theme-preview theme-preview-dark">
+            <div class="tp-bar"></div>
+            <div class="tp-content">
+              <div class="tp-line tp-line-short"></div>
+              <div class="tp-line"></div>
+              <div class="tp-line tp-line-short"></div>
+            </div>
+          </div>
+          <div class="theme-choice-label">
+            <span>深色</span>
+            <div class="theme-check" id="checkDark"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 设置开关项 -->
+      <div class="settings-group">
+        <div class="settings-group-title">色彩</div>
+        <div class="settings-item">
+          <span>跟随系统</span>
+          <label class="toggle"><input type="checkbox" id="toggleAutoTheme" onchange="toggleAutoThemeMode()"><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <div class="settings-group-title">设计</div>
+        <div class="settings-item">
+          <span>Liquid Glass 效果</span>
+          <label class="toggle"><input type="checkbox" id="toggleLiquidGlass" checked onchange="toggleLiquidGlassEffect()"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="settings-item">
+          <span>紧凑模式</span>
+          <label class="toggle"><input type="checkbox" id="toggleCompact" onchange="toggleCompactMode()"><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SVG Filters container -->
+<svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;pointer-events:none" color-interpolation-filters="sRGB">
+  <defs id="svg-defs"></defs>
+</svg>
+
+<!-- Bottom Dock -->
+<nav class="bottom-controls" id="bottomDockNav" style="display:none" aria-label="底部导航栏">
+  <div class="dock-wrapper" id="dock-wrapper">
+    <div class="dock-container" id="dock-root">
+      <div class="dock-shadow-layer"></div>
+      <div class="dock-base"><div class="glow-layer"></div></div>
+      <div class="ripple-layer"></div>
+
+      <div class="dock-items-wrap">
+        <!-- Tab1: Department -->
+        <div class="dock-item" data-tab="0">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9v-1a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v1z"/>
+            <path d="M3 11v5a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5z"/>
+          </svg><span id="dockTabLabel0">秘书处</span>
+        </div>
+        <!-- Tab2: Department Overview -->
+        <div class="dock-item" data-tab="1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/>
+            <rect x="14" y="14" width="7" height="7" rx="1"/>
+          </svg><span>部门概览</span>
+        </div>
+        <!-- Tab3: Members List -->
+        <div class="dock-item" data-tab="2">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg><span>成员列表</span>
+        </div>
+        <!-- Tab4: Settings -->
+        <div class="dock-item" data-tab="3">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg><span>设置</span>
+        </div>
+      </div>
+
+      <div id="frosted-slider"></div>
+
+      <div class="dock-active-layer" id="active-mask">
+        <div class="dock-item" data-tab="0">
+          <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9v-1a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v1z"/>
+            <path d="M3 11v5a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5z"/>
+          </svg><span id="dockTabLabelActive0">秘书处</span>
+        </div>
+        <div class="dock-item" data-tab="1">
+          <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/>
+            <rect x="14" y="14" width="7" height="7" rx="1"/>
+          </svg><span>部门概览</span>
+        </div>
+        <div class="dock-item" data-tab="2">
+          <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg><span>成员列表</span>
+        </div>
+        <div class="dock-item" data-tab="3">
+          <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg><span>设置</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ===== ADD/EDIT MODAL ===== -->
+<div class="modal-overlay" id="memberModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle">添加成员</h2>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editId">
+      <div class="form-row">
+        <div class="form-group"><label>姓名</label><input type="text" id="fName" placeholder="成员姓名"></div>
+        <div class="form-group"><label>部门</label>
+          <select id="fDept"><option value="">选择部门</option>
+            <option>秘书处</option><option>学习部</option><option>体育部</option><option>宣传部</option><option>纪检部</option><option>生活部</option><option>社联会</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>职位</label>
+          <select id="fPosition"><option value="">选择职位</option><option>部长</option><option>副部长</option><option>干事</option></select>
+        </div>
+        <div class="form-group"><label>入职时间</label><input type="date" id="fJoinDate"></div>
+      </div>
+      <div class="form-group"><label>主要负责</label><input type="text" id="fDuty" placeholder="如：活动策划、财务管理等"></div>
+      <div class="form-group"><label>离职时间</label><input type="date" id="fLeaveDate" placeholder="留空表示在任"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveMember()">确认保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CONFIRM MODAL ===== -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header"><h2>确认删除</h2><button class="modal-close" onclick="closeConfirm()">&times;</button></div>
+    <div class="modal-body"><p id="confirmMsg" style="font-size:14px;color:var(--text-secondary);line-height:1.6"></p></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeConfirm()">取消</button>
+      <button class="btn btn-danger" id="confirmDelBtn">确认删除</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+// ===== DATA =====
+const STORAGE_KEY = 'su_members_data_v3';
+const DEFAULT_DATA = [
+  {id:1,name:'张明远',dept:'秘书处',position:'部长',duty:'统筹协调各部门工作、会议组织',joinDate:'2025-09-01',leaveDate:''},
+  {id:2,name:'李思语',dept:'秘书处',position:'副部长',duty:'文件管理、财务审批',joinDate:'2025-09-01',leaveDate:''},
+  {id:3,name:'王浩然',dept:'学习部',position:'部长',duty:'组织学术讲座、学习经验分享会',joinDate:'2025-09-01',leaveDate:''},
+  {id:4,name:'赵雨晨',dept:'学习部',position:'干事',duty:'学习资料整理、活动宣传文案',joinDate:'2025-10-15',leaveDate:''},
+  {id:5,name:'陈欣怡',dept:'体育部',position:'部长',duty:'策划校园体育赛事、运动会组织',joinDate:'2025-09-01',leaveDate:''},
+  {id:6,name:'刘子轩',dept:'体育部',position:'干事',duty:'赛事组织协调、器材管理',joinDate:'2025-10-15',leaveDate:''},
+  {id:7,name:'杨雅琪',dept:'宣传部',position:'部长',duty:'公众号运营、宣传海报设计',joinDate:'2025-09-01',leaveDate:''},
+  {id:8,name:'黄嘉文',dept:'宣传部',position:'副部长',duty:'摄影摄像、视频剪辑',joinDate:'2025-09-01',leaveDate:''},
+  {id:9,name:'孙梦琪',dept:'纪检部',position:'部长',duty:'考勤管理、纪律检查',joinDate:'2025-09-01',leaveDate:''},
+  {id:10,name:'郑浩宇',dept:'纪检部',position:'干事',duty:'日常巡查、评分记录',joinDate:'2025-10-15',leaveDate:''},
+  {id:11,name:'林晓萱',dept:'生活部',position:'部长',duty:'宿舍管理、校园生活服务',joinDate:'2025-09-01',leaveDate:''},
+  {id:12,name:'钱思源',dept:'社联会',position:'部长',duty:'社团管理、社团活动审批',joinDate:'2025-09-01',leaveDate:''},
+  {id:13,name:'徐雨菲',dept:'社联会',position:'干事',duty:'社团联络、活动协调',joinDate:'2025-10-15',leaveDate:''},
+];
+
+const ALL_DEPTS = ['秘书处','学习部','体育部','宣传部','纪检部','生活部','社联会'];
+
+let members = [];
+let currentUser = {name:'',role:'',dept:'',position:'',isAdmin:false,isDeptAdmin:false,isMember:false};
+let currentPage = 1;
+const pageSize = 8;
+let currentFilter = '全部';
+
+// Tab state
+let currentTab = 0;
+
+function loadData(){
+  localStorage.removeItem('su_members_data');
+  localStorage.removeItem('su_members_data_v2');
+  const saved = localStorage.getItem(STORAGE_KEY);
+  members = saved ? JSON.parse(saved) : [...DEFAULT_DATA];
+  if(!saved) saveData();
+}
+function saveData(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(members)); }
+
+// ===== PERMISSION HELPERS =====
+function canManage(m){
+  if(currentUser.isAdmin) return true;
+  if(currentUser.isDeptAdmin) return m.dept === currentUser.dept;
+  return false;
+}
+function canSeeAccount(m){
+  if(currentUser.isAdmin) return true;
+  if(currentUser.isDeptAdmin) return m.dept === currentUser.dept;
+  return false;
+}
+
+// ===== LOGIN =====
+let selectedRole = '部长';
+function selectRole(role){
+  selectedRole = role;
+  document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+}
+
+function handleLogin(){
+  const user = document.getElementById('loginUser').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  if(!user || pass !== '123456'){
+    const err = document.getElementById('loginError');
+    err.style.display = 'block';
+    setTimeout(() => err.style.display = 'none', 3000);
+    return;
+  }
+  loadData();
+  let profileData = null;
+
+  const found = members.find(m => m.name === user);
+  if(!found){
+    const err = document.getElementById('loginError');
+    err.style.display = 'block';
+    setTimeout(() => err.style.display = 'none', 3000);
+    return;
+  }
+  profileData = found;
+  if(selectedRole === '成员'){
+    currentUser = {name:found.name, role:'成员', dept:found.dept, position:found.position, isAdmin:false, isDeptAdmin:false, isMember:true};
+  } else {
+    const isSecretaryAdmin = found.dept === '秘书处' && found.position === '部长';
+    const isDeptMinister = found.position === '部长' || found.position === '副部长';
+    currentUser = {
+      name: found.name, role: found.position, dept: found.dept, position: found.position,
+      isAdmin: isSecretaryAdmin,
+      isDeptAdmin: !isSecretaryAdmin && isDeptMinister,
+      isMember: false
+    };
+  }
+
+  document.getElementById('loginPage').style.display = 'none';
+  document.getElementById('mainPage').style.display = 'block';
+
+  // Show Dock after login
+  document.getElementById('bottomDockNav').style.display = '';
+
+  document.getElementById('topbarName').textContent = currentUser.name;
+  document.getElementById('topbarRole').textContent = currentUser.isAdmin ? '管理员' : currentUser.role;
+  document.getElementById('avatarLetter').textContent = currentUser.name[0];
+
+  // Fill profile card
+  document.getElementById('profileAvatar').textContent = currentUser.name[0];
+  document.getElementById('profileName').textContent = currentUser.name;
+  document.getElementById('profileRole').textContent = currentUser.isAdmin ? '管理员' : currentUser.role;
+  if(profileData){
+    document.getElementById('profileDept').textContent = profileData.dept || '--';
+    document.getElementById('profilePosition').textContent = profileData.position || '--';
+    document.getElementById('profileDuty').textContent = profileData.duty || '--';
+    document.getElementById('profileJoin').textContent = profileData.joinDate || '--';
+    document.getElementById('profileLeave').textContent = profileData.leaveDate || '在任';
+  } else {
+    document.getElementById('profileDept').textContent = '--';
+    document.getElementById('profilePosition').textContent = '--';
+    document.getElementById('profileDuty').textContent = '--';
+    document.getElementById('profileJoin').textContent = '--';
+    document.getElementById('profileLeave').textContent = '--';
+  }
+
+  // Update dock tab label to show user's department
+  const deptLabel = currentUser.dept || '秘书处';
+  document.getElementById('dockTabLabel0').textContent = deptLabel;
+  document.getElementById('dockTabLabelActive0').textContent = deptLabel;
+
+  // Permission-based UI
+  const showAdmin = currentUser.isAdmin || currentUser.isDeptAdmin;
+  document.getElementById('adminStats').style.display = showAdmin ? 'grid' : 'none';
+  document.getElementById('adminActions').style.display = showAdmin ? 'flex' : 'none';
+  document.getElementById('adminToolbar').style.display = showAdmin ? 'flex' : 'none';
+  document.getElementById('memberSearchBar').style.display = showAdmin ? 'none' : 'flex';
+
+  // Import button
+  const importBtn = document.getElementById('importBtnWrap');
+  if(importBtn) importBtn.style.display = showAdmin ? '' : 'none';
+
+  // Add button
+  document.getElementById('addBtn').style.display = showAdmin ? '' : 'none';
+
+  // Export button
+  const exportBtn = document.getElementById('exportBtnWrap');
+  if(exportBtn) exportBtn.style.display = showAdmin ? '' : 'none';
+
+  // Dept admin: default filter to own dept
+  if(currentUser.isDeptAdmin && !currentUser.isAdmin){
+    currentFilter = currentUser.dept;
+  } else {
+    currentFilter = '全部';
+  }
+
+  initMain();
+}
+
+function handleLogout(){
+  document.getElementById('mainPage').style.display = 'none';
+  document.getElementById('bottomDockNav').style.display = 'none';
+  document.getElementById('loginPage').style.display = 'flex';
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+  // Reset tab
+  currentTab = 0;
+  switchTab(0);
+}
+
+document.getElementById('loginPass').addEventListener('keydown', e => { if(e.key === 'Enter') handleLogin(); });
+
+// ===== TAB SWITCHING =====
+function switchTab(idx){
+  currentTab = idx;
+  document.querySelectorAll('.tab-page').forEach((p,i) => {
+    p.classList.toggle('active', i === idx);
+  });
+  // Re-render table for Tab1 or Tab3 when switching
+  if(idx === 0 || idx === 2){
+    currentPage = 1;
+    renderTable();
+  }
+  if(idx === 1){
+    renderDeptGrid();
+  }
+}
+
+// ===== MAIN =====
+function initMain(){
+  loadData();
+  updateStats();
+  renderDeptGrid();
+  buildFilters();
+  renderTable();
+}
+
+function updateStats(){
+  const list = currentUser.isDeptAdmin && !currentUser.isAdmin
+    ? members.filter(m => m.dept === currentUser.dept)
+    : members;
+  document.getElementById('statTotal').textContent = list.length;
+  const active = list.filter(m => !m.leaveDate).length;
+  document.getElementById('statActive').textContent = active;
+  if(currentUser.isDeptAdmin && !currentUser.isAdmin){
+    document.getElementById('statTotalLabel').textContent = currentUser.dept + ' 总人数';
+    document.getElementById('statTotalSub').textContent = '部门成员';
+  } else {
+    document.getElementById('statTotalLabel').textContent = '总人数';
+    document.getElementById('statTotalSub').textContent = '全部成员';
+  }
+}
+
+function getVisibleMembers(){
+  return members;
+}
+
+function renderDeptGrid(){
+  const list = getVisibleMembers();
+  const depts = [...new Set(list.map(m => m.dept))];
+  const colors = {'秘书处':'#e2b04a','学习部':'#4299e1','体育部':'#48bb78','宣传部':'#ed8936','纪检部':'#fc8181','生活部':'#4fd1c5','社联会':'#9f7aea'};
+  const icons = {'秘书处':'📋','学习部':'📚','体育部':'⚽','宣传部':'📢','纪检部':'✅','生活部':'🏠','社联会':'🤝'};
+  const descs = {'秘书处':'统筹协调，中枢管理','学习部':'学风建设，学术交流','体育部':'体育赛事，强身健体','宣传部':'宣传推广，形象建设','纪检部':'纪律检查，考勤管理','生活部':'生活服务，环境建设','社联会':'社团管理，活动统筹'};
+  const total = list.length;
+  document.getElementById('deptGrid').innerHTML = depts.map(d => {
+    const count = list.filter(m => m.dept === d).length;
+    const pct = total ? Math.round(count/total*100) : 0;
+    const c = colors[d]||'#888';
+    return `<div class="dept-card" onclick="filterByDept('${d}');switchTab(0);">
+      <div class="dept-card-header">
+        <div class="dept-card-icon" style="background:${c}22;color:${c}">${icons[d]||'📁'}</div>
+        <div class="dept-card-count">${count}</div>
+      </div>
+      <div class="dept-card-name">${d}</div>
+      <div class="dept-card-desc">${descs[d]||''}</div>
+      <div class="dept-progress"><div class="dept-progress-bar" style="width:${pct}%;background:linear-gradient(90deg,${c},${c}aa)"></div></div>
+    </div>`;
+  }).join('');
+}
+
+function filterByDept(dept){
+  currentFilter = dept;
+  currentPage = 1;
+  buildFilters();
+  renderTable();
+  showToast('success', `已筛选：${dept}`);
+}
+
+function buildFilters(){
+  const list = getVisibleMembers();
+  const depts = ['全部', ...new Set(list.map(m => m.dept))];
+  document.getElementById('filterBtns').innerHTML = depts.map(d =>
+    `<button class="filter-btn ${d===currentFilter?'active':''}" onclick="setFilter('${d}')">${d}</button>`
+  ).join('');
+}
+function setFilter(f){ currentFilter = f; currentPage = 1; buildFilters(); renderTable(); }
+
+function renderTable(){
+  const showAdmin = currentUser.isAdmin || currentUser.isDeptAdmin;
+  const searchEl = showAdmin ? document.getElementById('searchInput') : document.getElementById('memberSearchInput');
+  const q = (searchEl ? searchEl.value : '').trim().toLowerCase();
+
+  let list = getVisibleMembers().filter(m => {
+    // Tab1 (admin): apply filter; Tab3 (read-only): show all
+    if(currentTab === 0 && currentFilter !== '全部' && m.dept !== currentFilter) return false;
+    if(q && !(m.name.toLowerCase().includes(q) || m.dept.toLowerCase().includes(q) || m.duty.toLowerCase().includes(q))) return false;
+    return true;
+  });
+  const total = list.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  if(currentPage > totalPages) currentPage = totalPages;
+  const start = (currentPage - 1) * pageSize;
+  const pageData = list.slice(start, start + pageSize);
+  const avatarColors = ['#e2b04a','#4299e1','#48bb78','#ed8936','#9f7aea','#fc8181','#4fd1c5','#63b3ed','#f687b3','#68d391'];
+
+  const isTab1 = (currentTab === 0);
+  const isTab3 = (currentTab === 2);
+  const targetBody = isTab3 ? document.getElementById('memberTable3') : document.getElementById('memberTable1');
+  const targetInfo = isTab3 ? document.getElementById('tableInfo3') : document.getElementById('tableInfo1');
+  const targetPagination = isTab3 ? document.getElementById('pagination3') : document.getElementById('pagination1');
+
+  if(isTab3){
+    // Tab3: read-only, no account column, no action column
+    targetBody.innerHTML = pageData.length ? pageData.map((m, i) => {
+      const c = avatarColors[(m.id||i) % avatarColors.length];
+      const isActive = !m.leaveDate;
+      return `<tr>
+        <td><div class="member-name"><div class="member-avatar" style="background:${c}22;color:${c}">${m.name[0]}</div>${m.name}</div></td>
+        <td><span class="dept-tag dept-${m.dept}">${m.dept}</span></td>
+        <td><span class="position-tag position-${m.position}">${m.position}</span></td>
+        <td style="color:var(--text-secondary);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${m.duty}">${m.duty}</td>
+        <td style="color:var(--text-secondary)">${m.joinDate||'--'}</td>
+        <td style="color:var(--text-secondary)">${m.leaveDate||'--'}</td>
+        <td><span class="status-${isActive?'active':'inactive'}">${isActive?'● 在任':'● 离职'}</span></td>
+      </tr>`;
+    }).join('') : `<tr><td colspan="7" style="text-align:center;padding:48px;color:var(--text-secondary)">暂无数据</td></tr>`;
+  } else {
+    // Tab1: full management columns
+    targetBody.innerHTML = pageData.length ? pageData.map((m, i) => {
+      const c = avatarColors[(m.id||i) % avatarColors.length];
+      const isActive = !m.leaveDate;
+      const accountCell = (currentUser.isAdmin || (currentUser.isDeptAdmin && m.dept === currentUser.dept))
+        ? `<td style="color:var(--text-secondary);font-size:13px"><span style="opacity:.7">用户名：</span>${m.name} <span style="opacity:.5;margin-left:2px">/ 密码：123456</span></td>`
+        : (showAdmin ? `<td style="color:rgba(128,128,128,0.3);font-size:13px">******</td>` : '');
+      const actionCell = canManage(m) ? `<td><div class="actions-cell">
+          <button class="icon-btn" title="编辑" onclick="openModal('edit',${m.id})">✏</button>
+          <button class="icon-btn delete" title="删除" onclick="confirmDelete(${m.id},'${m.name}')">🗑</button>
+        </div></td>` : (showAdmin ? '<td></td>' : '');
+      return `<tr>
+        <td><div class="member-name"><div class="member-avatar" style="background:${c}22;color:${c}">${m.name[0]}</div>${m.name}</div></td>
+        ${accountCell}
+        <td><span class="dept-tag dept-${m.dept}">${m.dept}</span></td>
+        <td><span class="position-tag position-${m.position}">${m.position}</span></td>
+        <td style="color:var(--text-secondary);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${m.duty}">${m.duty}</td>
+        <td style="color:var(--text-secondary)">${m.joinDate||'--'}</td>
+        <td style="color:var(--text-secondary)">${m.leaveDate||'--'}</td>
+        <td><span class="status-${isActive?'active':'inactive'}">${isActive?'● 在任':'● 离职'}</span></td>
+        ${actionCell}
+      </tr>`;
+    }).join('') : `<tr><td colspan="${showAdmin ? 9 : 7}" style="text-align:center;padding:48px;color:var(--text-secondary)">暂无数据</td></tr>`;
+  }
+
+  targetInfo.textContent = `共 ${total} 条记录，第 ${currentPage}/${totalPages} 页`;
+  targetPagination.innerHTML = totalPages > 1 ? Array.from({length: totalPages}, (_, i) =>
+    `<button class="page-btn ${i+1===currentPage?'active':''}" onclick="goPage(${i+1})">${i+1}</button>`
+  ).join('') : '';
+}
+function goPage(p){ currentPage = p; renderTable(); }
+
+// ===== MODAL =====
+function openModal(type, id){
+  document.getElementById('editId').value = '';
+  document.getElementById('fName').value = '';
+  document.getElementById('fDept').value = '';
+  document.getElementById('fPosition').value = '';
+  document.getElementById('fDuty').value = '';
+  document.getElementById('fJoinDate').value = '';
+  document.getElementById('fLeaveDate').value = '';
+  document.getElementById('modalTitle').textContent = '添加成员';
+
+  const deptSelect = document.getElementById('fDept');
+  if(currentUser.isDeptAdmin && !currentUser.isAdmin){
+    deptSelect.value = currentUser.dept;
+    deptSelect.disabled = true;
+  } else {
+    deptSelect.disabled = false;
+  }
+
+  if(type === 'edit' && id){
+    const m = members.find(x => x.id === id);
+    if(!m) return;
+    if(!canManage(m)){ showToast('error','无权限编辑该成员'); return; }
+    document.getElementById('editId').value = m.id;
+    document.getElementById('fName').value = m.name;
+    document.getElementById('fDept').value = m.dept;
+    document.getElementById('fPosition').value = m.position;
+    document.getElementById('fDuty').value = m.duty;
+    document.getElementById('fJoinDate').value = m.joinDate;
+    document.getElementById('fLeaveDate').value = m.leaveDate;
+    document.getElementById('modalTitle').textContent = '编辑成员';
+  }
+  document.getElementById('memberModal').classList.add('show');
+}
+function closeModal(){
+  document.getElementById('memberModal').classList.remove('show');
+  document.getElementById('fDept').disabled = false;
+}
+
+function saveMember(){
+  const name = document.getElementById('fName').value.trim();
+  const dept = document.getElementById('fDept').value;
+  const position = document.getElementById('fPosition').value;
+  const duty = document.getElementById('fDuty').value.trim();
+  const joinDate = document.getElementById('fJoinDate').value;
+  const leaveDate = document.getElementById('fLeaveDate').value;
+  const editId = document.getElementById('editId').value;
+  if(!name||!dept||!position||!joinDate){
+    showToast('error', '请填写完整信息（姓名、部门、职位、入职时间）');
+    return;
+  }
+  if(editId){
+    const m = members.find(x => x.id == editId);
+    if(m){ Object.assign(m, {name,dept,position,duty,joinDate,leaveDate}); }
+    showToast('success', `已更新 ${name} 的信息`);
+  } else {
+    if(currentUser.isDeptAdmin && !currentUser.isAdmin && dept !== currentUser.dept){
+      showToast('error', '只能添加到本部门');
+      return;
+    }
+    const newId = members.length ? Math.max(...members.map(m=>m.id)) + 1 : 1;
+    members.push({id:newId,name,dept,position,duty,joinDate,leaveDate});
+    showToast('success', `已添加 ${name}`);
+  }
+  saveData();
+  closeModal();
+  updateStats();
+  renderDeptGrid();
+  renderTable();
+}
+
+// ===== DELETE =====
+function confirmDelete(id, name){
+  const m = members.find(x => x.id === id);
+  if(!canManage(m)){ showToast('error','无权限删除该成员'); return; }
+  document.getElementById('confirmMsg').textContent = `确定要删除「${name}」的记录吗？此操作不可撤销。`;
+  document.getElementById('confirmModal').classList.add('show');
+  document.getElementById('confirmDelBtn').onclick = () => {
+    members = members.filter(m => m.id !== id);
+    saveData();
+    closeConfirm();
+    updateStats();
+    renderDeptGrid();
+    renderTable();
+    showToast('success', `已删除 ${name}`);
+  };
+}
+function closeConfirm(){ document.getElementById('confirmModal').classList.remove('show'); }
+
+// ===== EXPORT =====
+function exportData(){
+  const list = getVisibleMembers();
+  const showAcct = currentUser.isAdmin || currentUser.isDeptAdmin;
+  const headers = showAcct
+    ? ['姓名','账号','密码','部门','职位','主要负责','入职时间','离职时间','状态']
+    : ['姓名','部门','职位','主要负责','入职时间','离职时间','状态'];
+  const rows = list.map(m => {
+    const base = [m.name, m.dept, m.position, m.duty, m.joinDate, m.leaveDate||'', m.leaveDate?'离职':'在任'];
+    if(showAcct) base.splice(1, 0, m.name, '123456');
+    return base;
+  });
+  let csv = '\uFEFF' + headers.join(',') + '\n' + rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `学生会成员数据_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  showToast('success', '数据导出成功');
+}
+
+// ===== IMPORT EXCEL =====
+function importExcel(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, {type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(ws);
+      if(!json.length){ showToast('error','文件为空或格式不正确'); return; }
+
+      let imported = 0;
+      json.forEach(row => {
+        const name = (row['姓名'] || '').toString().trim();
+        const dept = (row['部门'] || '').toString().trim();
+        const position = (row['职位'] || '').toString().trim();
+        const duty = (row['主要负责'] || '').toString().trim();
+        const joinDate = parseExcelDate(row['入职时间']);
+        const leaveDate = parseExcelDate(row['离职时间']);
+
+        if(!name || !dept) return;
+
+        if(currentUser.isDeptAdmin && !currentUser.isAdmin && dept !== currentUser.dept) return;
+
+        const exists = members.find(m => m.name === name);
+        if(exists){
+          Object.assign(exists, {dept, position, duty, joinDate, leaveDate});
+        } else {
+          const newId = members.length ? Math.max(...members.map(m=>m.id)) + 1 : 1;
+          members.push({id:newId, name, dept, position, duty, joinDate, leaveDate});
+        }
+        imported++;
+      });
+
+      saveData();
+      updateStats();
+      renderDeptGrid();
+      renderTable();
+      showToast('success', `成功导入/更新 ${imported} 条记录`);
+    } catch(err){
+      showToast('error', '导入失败：文件格式不正确 ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  event.target.value = '';
+}
+
+function parseExcelDate(val){
+  if(!val) return '';
+  if(typeof val === 'number'){
+    const d = new Date((val - 25569) * 86400 * 1000);
+    return d.toISOString().slice(0,10);
+  }
+  const s = val.toString().trim();
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const d = new Date(s);
+  if(!isNaN(d.getTime())) return d.toISOString().slice(0,10);
+  return s;
+}
+
+// ===== TOAST =====
+function showToast(type, msg){
+  const t = document.getElementById('toast');
+  t.className = `toast toast-${type}`;
+  t.textContent = msg;
+  setTimeout(() => t.classList.add('show'), 10);
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ===== CLICK OUTSIDE MODAL =====
+document.getElementById('memberModal').addEventListener('click', e => { if(e.target === e.currentTarget) closeModal(); });
+document.getElementById('confirmModal').addEventListener('click', e => { if(e.target === e.currentTarget) closeConfirm(); });
+
+/* ==============================================
+   Liquid Glass Core JS
+   ============================================== */
+
+/* Core 1: G2 continuous curvature pill path for mask */
+function generateG2PillPathStr(w, h, offsetX = 0, offsetY = 0, tRatio = 0.45) {
+  const r = h / 2;
+  const t = Math.max(0, Math.min(r * tRatio, w / 2 - r));
+  return `M ${w / 2 + offsetX} ${offsetY} L ${w - r - t + offsetX} ${offsetY} C ${w - r - t * 0.5 + offsetX} ${offsetY}, ${w - r + offsetX} ${offsetY}, ${w - r + r * 0.15 + offsetX} ${r * 0.03 + offsetY} C ${w - r + r * 0.6 + offsetX} ${r * 0.08 + offsetY}, ${w + offsetX} ${r * 0.45 + offsetY}, ${w + offsetX} ${r + offsetY} C ${w + offsetX} ${h - r * 0.45 + offsetY}, ${w - r + r * 0.6 + offsetX} ${h - r * 0.08 + offsetY}, ${w - r + r * 0.15 + offsetX} ${h - r * 0.03 + offsetY} C ${w - r + offsetX} ${h + offsetY}, ${w - r - t * 0.5 + offsetX} ${h + offsetY}, ${w - r - t + offsetX} ${h + offsetY} L ${r + t + offsetX} ${h + offsetY} C ${r + t * 0.5 + offsetX} ${h + offsetY}, ${r + offsetX} ${h + offsetY}, ${r - r * 0.15 + offsetX} ${h - r * 0.03 + offsetY} C ${r - r * 0.6 + offsetX} ${h - r * 0.08 + offsetY}, ${offsetX} ${h - r * 0.45 + offsetY}, ${offsetX} ${r + offsetY} C ${offsetX} ${r * 0.45 + offsetY}, ${r - r * 0.6 + offsetX} ${r * 0.08 + offsetY}, ${r - r * 0.15 + offsetX} ${r * 0.03 + offsetY} C ${r + offsetX} ${offsetY}, ${r + t * 0.5 + offsetX} ${offsetY}, ${r + t + offsetX} ${offsetY} Z`;
+}
+
+function getSolidPillMask(w, h) {
+  const PR = 4;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w * PR}" height="${h * PR}" viewBox="-1 -1 ${w * PR + 2} ${h * PR + 2}" preserveAspectRatio="none"><path d="${generateG2PillPathStr(w * PR, h * PR)}" fill="black"/></svg>`;
+  return `url("data:image/svg+xml;utf8,${encodeURIComponent(svg)}")`;
+}
+
+function getHollowPillMask(w, h, b) {
+  const PR = 4;
+  const insetW = w * PR - b * PR;
+  const insetH = h * PR - b * PR;
+  const off = (b * PR) / 2;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w * PR}" height="${h * PR}" viewBox="-1 -1 ${w * PR + 2} ${h * PR + 2}" preserveAspectRatio="none"><path d="${generateG2PillPathStr(insetW, insetH, off, off)}" fill="none" stroke="black" stroke-width="${b * PR}"/></svg>`;
+  return `url("data:image/svg+xml;utf8,${encodeURIComponent(svg)}")`;
+}
+
+document.documentElement.style.setProperty("--slider-mask-solid", getSolidPillMask(79, 48));
+document.documentElement.style.setProperty("--slider-mask-hollow", getHollowPillMask(79, 48, 1.2));
+document.getElementById("dock-wrapper").style.setProperty("--mask-solid", getSolidPillMask(324, 55));
+document.getElementById("dock-wrapper").style.setProperty("--mask-hollow", getHollowPillMask(324, 55, 1.5));
+
+/* Core 2: Generate displacement map + specular map, assemble SVG filter */
+let targetGlassScale = 0;
+let targetGlassSpec = 0;
+let currentFilterScale = 0;
+let currentFilterSpec = 0;
+
+const LIQUID_CONFIG = {
+  surfaceShape: "convex_squircle",
+  bezelWidth: 40,
+  ior: 2.0,
+  scaleRatio: 0.8,
+  specularOpacity: 0.5,
+  specularSaturation: 4,
+  sliderThickness: 1.0,
+  sliderBlur: 0,
+  dockThickness: 5.0,
+  dockBlur: 2,
+  sliderDispR: 0.99,
+  sliderDispB: 1.35,
+  dockDispR: 0.92,
+  dockDispB: 1.08,
+  sliderBaseZoom: 0.66
+};
+
+const SURFACE_FNS = {
+  convex_squircle: (x) => Math.pow(1 - Math.pow(1 - x, 4), 0.25)
+};
+
+function calculateRefractionProfile(glassThickness, bezelWidth, heightFn, ior, samples = 128) {
+  const eta = 1 / ior;
+  function refract(nx, ny) {
+    const dot = ny;
+    const k = 1 - eta * eta * (1 - dot * dot);
+    if (k < 0) return null;
+    const sq = Math.sqrt(k);
+    return [-(eta * dot + sq) * nx, eta - (eta * dot + sq) * ny];
+  }
+  const profile = new Float64Array(samples);
+  for (let i = 0; i < samples; i++) {
+    const x = i / samples;
+    const y = heightFn(x);
+    const dx = x < 1 ? 0.0001 : -0.0001;
+    const y2 = heightFn(x + dx);
+    const deriv = (y2 - y) / dx;
+    const mag = Math.sqrt(deriv * deriv + 1);
+    const ref = refract(-deriv / mag, -1 / mag);
+    profile[i] = ref ? ref[0] * ((y * bezelWidth + glassThickness) / ref[1]) : 0;
+  }
+  return profile;
+}
+
+function generateDisplacementMap(w, h, radius, bezelWidth, profile, baseZoom = 1.0) {
+  let localMax = 0;
+  const S = profile.length;
+  for (let d = 0; d <= radius + 5; d += 0.5) {
+    const fromSide = radius - d;
+    const bi = Math.max(0, Math.min(((fromSide / bezelWidth) * S) | 0, S - 1));
+    const disp = profile[bi] || 0;
+    const zoomDisp = d * (1 / baseZoom - 1);
+    const netDispOutward = zoomDisp - disp;
+    if (Math.abs(netDispOutward) > localMax) localMax = Math.abs(netDispOutward);
+  }
+  if (localMax === 0) localMax = 1;
+  const c = document.createElement("canvas");
+  c.width = w; c.height = h;
+  const ctx = c.getContext("2d");
+  const img = ctx.createImageData(w, h);
+  const data = img.data;
+  for (let i = 0; i < data.length; i += 4) { data[i]=128; data[i+1]=128; data[i+2]=0; data[i+3]=255; }
+  const aaBand = 2.5, cx = w/2, cy = h/2, maxRadius = cy, flatW = Math.max(0, w-h);
+  for (let y1=0;y1<h;y1++){for(let x1=0;x1<w;x1++){
+    const closestX = Math.max(cx-flatW/2,Math.min(cx+flatW/2,x1));
+    const closestY = cy;
+    const vecX=x1-closestX,vecY=y1-closestY;
+    const dist=Math.sqrt(vecX*vecX+vecY*vecY);
+    if(dist>maxRadius+aaBand||dist===0) continue;
+    const fromSide=maxRadius-dist;
+    const op=dist<maxRadius?1:Math.max(0,1-(dist-maxRadius)/aaBand);
+    if(op<=0) continue;
+    const dirX=vecX/dist,dirY=vecY/dist;
+    const bi=Math.max(0,Math.min(((fromSide/bezelWidth)*S)|0,S-1));
+    const disp=profile[bi]||0;
+    const zoomDisp=dist*(1/baseZoom-1);
+    const netDispOutward=zoomDisp-disp;
+    const dX=(dirX*netDispOutward)/localMax;
+    const dY=(dirY*netDispOutward)/localMax;
+    const idx=(y1*w+x1)*4;
+    data[idx]=(128+dX*127*op+0.5)|0;
+    data[idx+1]=(128+dY*127*op+0.5)|0;
+  }}
+  ctx.putImageData(img,0,0);
+  return {url:c.toDataURL(),maxDisp:localMax};
+}
+
+function generateSpecularMap(w, h, radius, bezelWidth, angle = Math.PI/3) {
+  const c = document.createElement("canvas");
+  c.width = w; c.height = h;
+  const ctx = c.getContext("2d");
+  const img = ctx.createImageData(w, h);
+  const data = img.data;
+  data.fill(0);
+  const aaBand=2.5,sv=[Math.cos(angle),Math.sin(angle)],cx=w/2,cy=h/2,maxRadius=cy,flatW=Math.max(0,w-h);
+  for(let y1=0;y1<h;y1++){for(let x1=0;x1<w;x1++){
+    const closestX=Math.max(cx-flatW/2,Math.min(cx+flatW/2,x1));
+    const closestY=cy;
+    const vecX=x1-closestX,vecY=y1-closestY;
+    const dist=Math.sqrt(vecX*vecX+vecY*vecY);
+    if(dist>maxRadius+aaBand||dist===0) continue;
+    const fromSide=maxRadius-dist;
+    const op=dist<maxRadius?1:Math.max(0,1-(dist-maxRadius)/aaBand);
+    if(op<=0) continue;
+    const dirX=vecX/dist,dirY=vecY/dist;
+    const dot=Math.abs(dirX*sv[0]+(-dirY)*sv[1]);
+    const edge=Math.sqrt(Math.max(0,1-(1-fromSide)**2));
+    const coeff=dot*edge;
+    const col=(255*coeff)|0;
+    const alpha=(col*coeff*op)|0;
+    const idx=(y1*w+x1)*4;
+    data[idx]=col;data[idx+1]=col;data[idx+2]=col;data[idx+3]=alpha;
+  }}
+  ctx.putImageData(img,0,0);
+  return c.toDataURL();
+}
+
+function initLiquidGlass() {
+  const defs = document.getElementById("svg-defs");
+  defs.innerHTML = "";
+
+  function buildFilter(id, w, h, prefix, isDynamic, thicknessVal, blurAmt, hasDispersion, dispR=1, dispB=1, baseZoom=1) {
+    const PR = w > 100 ? 1 : 2;
+    const cW=w*PR, cH=h*PR, cRadius=(h/2)*PR, glassThick=thicknessVal*PR;
+    const bezelW=LIQUID_CONFIG.bezelWidth*PR;
+    const clampedBezel=Math.min(bezelW,cRadius-PR,Math.min(cW,cH)/2-PR);
+    const heightFn=SURFACE_FNS[LIQUID_CONFIG.surfaceShape];
+    const profile=calculateRefractionProfile(glassThick,clampedBezel,heightFn,LIQUID_CONFIG.ior,128);
+    const dispData=generateDisplacementMap(cW,cH,cRadius,clampedBezel,profile,baseZoom);
+    const specUrl=generateSpecularMap(cW,cH,cRadius,clampedBezel*2.5);
+    let scaleVal=(dispData.maxDisp/PR)*LIQUID_CONFIG.scaleRatio;
+    let slopeVal=LIQUID_CONFIG.specularOpacity;
+    if(isDynamic){targetGlassScale=scaleVal;targetGlassSpec=slopeVal;scaleVal=0;slopeVal=0;}
+
+    const filterHTML = hasDispersion
+      ? `<filter id="${id}" x="-50%" y="-50%" width="200%" height="200%" primitiveUnits="userSpaceOnUse">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="${blurAmt}" result="blurred_source" />
+          <feImage href="${dispData.url}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="none" result="disp_map" />
+          <feColorMatrix in="blurred_source" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="red_c" />
+          <feColorMatrix in="blurred_source" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="green_c" />
+          <feColorMatrix in="blurred_source" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="blue_c" />
+          <feDisplacementMap id="${prefix}-disp-R" in="red_c" in2="disp_map" scale="${scaleVal*dispR}" xChannelSelector="R" yChannelSelector="G" result="disp_red" />
+          <feDisplacementMap id="${prefix}-disp-G" in="green_c" in2="disp_map" scale="${scaleVal}" xChannelSelector="R" yChannelSelector="G" result="disp_green" />
+          <feDisplacementMap id="${prefix}-disp-B" in="blue_c" in2="disp_map" scale="${scaleVal*dispB}" xChannelSelector="R" yChannelSelector="G" result="disp_blue" />
+          <feBlend mode="screen" in="disp_red" in2="disp_green" result="rg" />
+          <feBlend mode="screen" in="rg" in2="disp_blue" result="displaced" />
+          <feColorMatrix in="displaced" type="saturate" values="${LIQUID_CONFIG.specularSaturation}" result="displaced_sat" />
+          <feImage href="${specUrl}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="none" result="spec_layer" />
+          <feComposite in="displaced_sat" in2="spec_layer" operator="in" result="spec_masked" />
+          <feComponentTransfer in="spec_layer" result="spec_faded"><feFuncA id="${prefix}-spec" type="linear" slope="${slopeVal}" /></feComponentTransfer>
+          <feBlend in="spec_masked" in2="displaced" mode="normal" result="with_sat" />
+          <feBlend in="spec_faded" in2="with_sat" mode="normal" />
+        </filter>`
+      : `<filter id="${id}" x="-50%" y="-50%" width="200%" height="200%" primitiveUnits="userSpaceOnUse">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="${blurAmt}" result="blurred_source" />
+          <feImage href="${dispData.url}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="none" result="disp_map" />
+          <feDisplacementMap id="${prefix}-disp" in="blurred_source" in2="disp_map" scale="${scaleVal}" xChannelSelector="R" yChannelSelector="G" result="displaced" />
+          <feColorMatrix in="displaced" type="saturate" values="${LIQUID_CONFIG.specularSaturation}" result="displaced_sat" />
+          <feImage href="${specUrl}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="none" result="spec_layer" />
+          <feComposite in="displaced_sat" in2="spec_layer" operator="in" result="spec_masked" />
+          <feComponentTransfer in="spec_layer" result="spec_faded"><feFuncA id="${prefix}-spec" type="linear" slope="${slopeVal}" /></feComponentTransfer>
+          <feBlend in="spec_masked" in2="displaced" mode="normal" result="with_sat" />
+          <feBlend in="spec_faded" in2="with_sat" mode="normal" />
+        </filter>`;
+    defs.insertAdjacentHTML("beforeend", filterHTML);
+  }
+
+  buildFilter("liquid-glass-dispersion-filter", 79, 48, "glass", true, LIQUID_CONFIG.sliderThickness, LIQUID_CONFIG.sliderBlur, true, LIQUID_CONFIG.sliderDispR, LIQUID_CONFIG.sliderDispB, LIQUID_CONFIG.sliderBaseZoom);
+  buildFilter("dock-glass-filter", 324, 55, "dock", false, LIQUID_CONFIG.dockThickness, LIQUID_CONFIG.dockBlur, true, LIQUID_CONFIG.dockDispR, LIQUID_CONFIG.dockDispB, 1);
+}
+
+initLiquidGlass();
+
+/* Core 3: Bottom Dock interaction - spring-driven slider, deformation, mask clipping, SVG filter intensity */
+const SOFT_K = 0.045;
+const SOFT_D = 0.84;
+const JELLY_K = 0.01;
+const JELLY_D = 0.95;
+const TARGET_POSITIONS = [4, 83, 162, 241];
+const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
+const rubberBand = (distance, limit) => (distance * 0.05 * limit) / (Math.abs(distance * 0.05) + limit);
+
+const dockWrapper = document.getElementById("dock-wrapper");
+const dockRoot = document.getElementById("dock-root");
+const slider = document.getElementById("frosted-slider");
+
+let globalPtrX = -999;
+let globalPtrY = -999;
+let currentActiveIndex = 0;
+let dockPressed = false;
+let isDragging = false;
+let isExpanding = false;
+let isAutoAnimating = false;
+let isSnapping = false;
+let targetX = TARGET_POSITIONS[0];
+let currentX = TARGET_POSITIONS[0];
+let lastX = TARGET_POSITIONS[0];
+let vel = 0;
+let touchOffsetX = 0;
+let pointerStartXSlider = 0;
+let pointerStartYSlider = 0;
+let sliderHasMoved = false;
+let wasDragging = false;
+let dockTargetShiftX = 0;
+let dockCurrentShiftX = 0;
+let dockTargetShiftY = 0;
+let dockCurrentShiftY = 0;
+let dockPressStartX = 0;
+let dockPressStartY = 0;
+let dockBaseScale = 1;
+let sliderBaseScale = 1;
+let sliderScaleVel = 0;
+let dockInnerOp = 0;
+let globalEdgeOp = 0;
+let currentGlowRadius = 1;
+let currentSX = 1;
+let currentSY = 1;
+let sxVel = 0;
+let syVel = 0;
+let curDispR = LIQUID_CONFIG.sliderDispR;
+let curDispB = LIQUID_CONFIG.sliderDispB;
+let mainGlassNodes = null;
+let lastTime = performance.now();
+
+function setExpanding(val) {
+  isExpanding = val;
+  slider.classList.toggle("expanding", val);
+  dockRoot.classList.toggle("expanding", val);
+}
+
+function setActiveIndex(idx) {
+  currentActiveIndex = idx;
+  switchTab(idx);
+}
+
+function physLoop(time) {
+  let dt = time - lastTime;
+  lastTime = time;
+  if (dt > 50) dt = 16.66;
+
+  if (!mainGlassNodes && document.getElementById("glass-disp-R")) {
+    mainGlassNodes = {
+      r: document.getElementById("glass-disp-R"),
+      g: document.getElementById("glass-disp-G"),
+      b: document.getElementById("glass-disp-B"),
+      spec: document.getElementById("glass-spec")
+    };
+  }
+
+  const dist = Math.abs(targetX - currentX);
+  const lerpFactor = isAutoAnimating ? 0.13 : (isDragging ? 0.25 : 0.08);
+  currentX += (targetX - currentX) * lerpFactor;
+  if (Math.abs(targetX - currentX) < 0.01) currentX = targetX;
+
+  slider.style.left = `${currentX}px`;
+  vel = currentX - lastX;
+  lastX = currentX;
+
+  let targetSX = 1;
+  let targetSY = 1;
+  const absVel = Math.abs(vel);
+  const majorDeform = Math.min(absVel * 0.04, 0.15);
+  const minorDeform = Math.min(absVel * 0.04, 0.08);
+  if (vel < -0.5) { targetSX = 1 - majorDeform; targetSY = 1 + minorDeform; }
+  else if (vel > 0.5) { targetSX = 1 + minorDeform; targetSY = 1 - majorDeform; }
+
+  sxVel += (targetSX - currentSX) * JELLY_K;
+  syVel += (targetSY - currentSY) * JELLY_K;
+  sxVel *= JELLY_D;
+  syVel *= JELLY_D;
+  currentSX += sxVel;
+  currentSY += syVel;
+
+  if (absVel < 0.1 && Math.abs(currentSX - 1) < 0.005 && Math.abs(sxVel) < 0.005) { currentSX = 1; sxVel = 0; }
+  if (absVel < 0.1 && Math.abs(currentSY - 1) < 0.005 && Math.abs(syVel) < 0.005) { currentSY = 1; syVel = 0; }
+
+  const targetSliderScale = isExpanding ? 1.35 : 1;
+  sliderScaleVel += (targetSliderScale - sliderBaseScale) * SOFT_K;
+  sliderScaleVel *= SOFT_D;
+  sliderBaseScale += sliderScaleVel;
+  if (Math.abs(sliderBaseScale - targetSliderScale) < 0.002 && Math.abs(sliderScaleVel) < 0.002) { sliderBaseScale = targetSliderScale; sliderScaleVel = 0; }
+
+  slider.style.transform = `scale(${currentSX * sliderBaseScale}, ${currentSY * sliderBaseScale}) translateZ(0)`;
+
+  const vW = 79 * currentSX * sliderBaseScale;
+  const vH = 48 * currentSY * sliderBaseScale;
+  const vL = currentX - (vW - 79) / 2;
+  const vT = 3.5 - (vH - 48) / 2;
+  document.documentElement.style.setProperty("--clipL", `${vL}px`);
+  document.documentElement.style.setProperty("--clipW", `${vW}px`);
+  document.documentElement.style.setProperty("--clipT", `${vT}px`);
+  document.documentElement.style.setProperty("--clipH", `${vH}px`);
+
+  if (isAutoAnimating || isSnapping) {
+    if (isExpanding && ((isAutoAnimating && dist <= 8) || (isSnapping && dist <= 10))) setExpanding(false);
+    if (isExpanding) {
+      dockTargetShiftX = rubberBand(currentX - targetX, 4);
+      dockTargetShiftY = 0;
+    } else if (!dockPressed) {
+      dockTargetShiftX = 0;
+    }
+    if (dist < 0.01 && absVel < 0.01 && !isExpanding) { isAutoAnimating = false; isSnapping = false; }
+  }
+
+  const targetDockScale = isExpanding ? 1.05 : 1;
+  dockBaseScale += (targetDockScale - dockBaseScale) * ((isAutoAnimating || isSnapping) ? 0.08 : 0.15);
+  if (Math.abs(dockBaseScale - targetDockScale) < 0.001) dockBaseScale = targetDockScale;
+
+  dockCurrentShiftX += (dockTargetShiftX - dockCurrentShiftX) * 0.15;
+  dockCurrentShiftY += (dockTargetShiftY - dockCurrentShiftY) * 0.15;
+  if (Math.abs(dockCurrentShiftX - dockTargetShiftX) < 0.01) dockCurrentShiftX = dockTargetShiftX;
+  if (Math.abs(dockCurrentShiftY - dockTargetShiftY) < 0.01) dockCurrentShiftY = dockTargetShiftY;
+  dockRoot.style.transform = `translate(${dockCurrentShiftX}px, ${dockCurrentShiftY}px) scale(${dockBaseScale})`;
+
+  if (mainGlassNodes && mainGlassNodes.r && isExpanding) {
+    const tFilterScale = targetGlassScale;
+    const tFilterSpec = targetGlassSpec;
+    const targetDispR = 0.95;
+    const targetDispB = 1.05;
+    curDispR += (targetDispR - curDispR) * 0.15;
+    curDispB += (targetDispB - curDispB) * 0.15;
+    currentFilterScale += (tFilterScale - currentFilterScale) * 0.15;
+    currentFilterSpec += (tFilterSpec - currentFilterSpec) * 0.15;
+    mainGlassNodes.r.setAttribute("scale", (currentFilterScale * curDispR).toFixed(2));
+    mainGlassNodes.g.setAttribute("scale", currentFilterScale.toFixed(2));
+    mainGlassNodes.b.setAttribute("scale", (currentFilterScale * curDispB).toFixed(2));
+    mainGlassNodes.spec.setAttribute("slope", currentFilterSpec.toFixed(2));
+  }
+
+  // Only compute dockRect and glow properties when interacting with dock
+  const isInteracting = isDragging || dockPressed;
+  if (isInteracting) {
+    const dockRect = dockRoot.getBoundingClientRect();
+    const targetDockInner = 1;
+    dockInnerOp += (targetDockInner - dockInnerOp) * 0.15;
+    globalEdgeOp += (targetDockInner - globalEdgeOp) * 0.15;
+    currentGlowRadius += (1 - currentGlowRadius) * 0.1;
+    dockRoot.style.setProperty("--innerGlowOp", dockInnerOp.toFixed(3));
+    dockRoot.style.setProperty("--edgeGlowOp", globalEdgeOp.toFixed(3));
+    dockRoot.style.setProperty("--glowRadius", currentGlowRadius.toFixed(3));
+    dockRoot.style.setProperty("--innerX", `${clamp(globalPtrX - dockRect.left, 0, dockRect.width)}px`);
+    dockRoot.style.setProperty("--innerY", `${clamp(globalPtrY - dockRect.top, 0, dockRect.height)}px`);
+    dockRoot.style.setProperty("--edgeX", `${(dockRect.left + clamp(globalPtrX - dockRect.left, 0, dockRect.width)) - dockRect.left}px`);
+    dockRoot.style.setProperty("--edgeY", `${(dockRect.top + clamp(globalPtrY - dockRect.top, 0, dockRect.height)) - dockRect.top}px`);
+  } else {
+    const targetDockInner = 0;
+    if (dockInnerOp > 0.001) {
+      dockInnerOp += (targetDockInner - dockInnerOp) * 0.15;
+      globalEdgeOp += (targetDockInner - globalEdgeOp) * 0.15;
+      currentGlowRadius += (1.3 - currentGlowRadius) * 0.1;
+      dockRoot.style.setProperty("--innerGlowOp", dockInnerOp.toFixed(3));
+      dockRoot.style.setProperty("--edgeGlowOp", globalEdgeOp.toFixed(3));
+      dockRoot.style.setProperty("--glowRadius", currentGlowRadius.toFixed(3));
+    }
+  }
+
+  requestAnimationFrame(physLoop);
+}
+
+requestAnimationFrame(physLoop);
+
+window.addEventListener("pointerdown", (e) => {
+  globalPtrX = e.clientX;
+  globalPtrY = e.clientY;
+}, { capture: true });
+
+window.addEventListener("pointermove", (e) => {
+  globalPtrX = e.clientX;
+  globalPtrY = e.clientY;
+  if (isDragging && !isAutoAnimating && !isSnapping) {
+    if (Math.abs(globalPtrX - pointerStartXSlider) > 5) sliderHasMoved = true;
+    const dx = globalPtrX - pointerStartXSlider;
+    targetX = clamp(touchOffsetX + dx, TARGET_POSITIONS[0], TARGET_POSITIONS[3]);
+    dockTargetShiftX = rubberBand(dx, 4);
+    dockTargetShiftY = rubberBand(globalPtrY - pointerStartYSlider, 4);
+  } else if (dockPressed && !isDragging) {
+    dockTargetShiftX = rubberBand(globalPtrX - dockPressStartX, 4);
+    dockTargetShiftY = rubberBand(globalPtrY - dockPressStartY, 4);
+  }
+});
+
+function handleGlobalUp() {
+  if (dockPressed) {
+    const rippleLayer = document.querySelector(".ripple-layer");
+    const r = document.createElement("div");
+    const rect = dockRoot.getBoundingClientRect();
+    r.className = "ripple-wave";
+    r.style.left = `${globalPtrX - rect.left}px`;
+    r.style.top = `${globalPtrY - rect.top}px`;
+    rippleLayer.appendChild(r);
+    setTimeout(() => r.remove(), 600);
+  }
+  if (dockPressed) {
+    dockPressed = false;
+    if (!isDragging) { dockTargetShiftX = 0; dockTargetShiftY = 0; }
+  }
+  if (isDragging && !isAutoAnimating) {
+    isDragging = false;
+    dockTargetShiftX = 0;
+    dockTargetShiftY = 0;
+    if (sliderHasMoved) { wasDragging = true; setTimeout(() => { wasDragging = false; }, 50); }
+    const inertia = Math.max(-80, Math.min(80, vel * 6));
+    const centerPos = currentX + inertia + 39.5;
+    const idx = centerPos < 83 ? 0 : centerPos < 162 ? 1 : centerPos < 241 ? 2 : 3;
+    targetX = TARGET_POSITIONS[idx];
+    isSnapping = true;
+    setActiveIndex(idx);
+    if (!sliderHasMoved) setExpanding(false);
+  }
+}
+
+window.addEventListener("pointerup", handleGlobalUp);
+window.addEventListener("pointercancel", handleGlobalUp);
+
+dockRoot.addEventListener("pointerdown", (e) => {
+  dockPressed = true;
+  dockPressStartX = e.clientX;
+  dockPressStartY = e.clientY;
+  const rect = dockRoot.getBoundingClientRect();
+  const relativeX = e.clientX - rect.left;
+  if (relativeX >= currentX - 5 && relativeX <= currentX + 84) {
+    isAutoAnimating = false;
+    isSnapping = false;
+    sliderHasMoved = false;
+    pointerStartXSlider = e.clientX;
+    pointerStartYSlider = e.clientY;
+    dockTargetShiftX = 0;
+    dockTargetShiftY = 0;
+    isDragging = true;
+    setExpanding(true);
+    touchOffsetX = currentX;
+  }
+});
+
+document.querySelectorAll(".dock-items-wrap .dock-item").forEach((item, i) => {
+  item.addEventListener("click", (e) => {
+    if (wasDragging || isDragging) { e.preventDefault(); return; }
+    if (Math.abs(targetX - TARGET_POSITIONS[i]) < 1) return;
+    isSnapping = false;
+    targetX = TARGET_POSITIONS[i];
+    isAutoAnimating = true;
+    setExpanding(true);
+    setActiveIndex(i);
+  });
+});
+
+// ===== THEME TOGGLING =====
+let currentAppTheme = localStorage.getItem('app-theme') || 'dark';
+let autoThemeMode = false;
+
+function setTheme(theme) {
+  if (autoThemeMode) return; // 自动模式下不响应手动选择
+  currentAppTheme = theme;
+  localStorage.setItem('app-theme', theme);
+  applyAppTheme();
+}
+
+function applyAppTheme() {
+  const html = document.documentElement;
+  html.classList.remove('light-mode');
+  if (currentAppTheme === 'light') {
+    html.classList.add('light-mode');
+  }
+  // 更新选择卡片状态
+  document.getElementById('themeCardLight').classList.toggle('active', currentAppTheme === 'light');
+  document.getElementById('themeCardDark').classList.toggle('active', currentAppTheme === 'dark');
+  document.getElementById('checkLight').style.display = currentAppTheme === 'light' ? 'flex' : 'none';
+  document.getElementById('checkDark').style.display = currentAppTheme === 'dark' ? 'flex' : 'none';
+}
+
+function toggleAutoThemeMode() {
+  autoThemeMode = document.getElementById('toggleAutoTheme').checked;
+  if (autoThemeMode) {
+    // 检测系统主题
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    currentAppTheme = prefersDark ? 'dark' : 'light';
+    localStorage.removeItem('app-theme'); // 自动模式下不保存
+  } else {
+    currentAppTheme = localStorage.getItem('app-theme') || 'dark';
+  }
+  applyAppTheme();
+}
+
+function toggleLiquidGlassEffect() {
+  const enabled = document.getElementById('toggleLiquidGlass').checked;
+  const slider = document.getElementById('frosted-slider');
+  const dockBase = document.querySelector('.dock-base');
+  if (slider) {
+    slider.style.display = enabled ? '' : 'none';
+  }
+  if (dockBase) {
+    dockBase.style.backdropFilter = enabled ? '' : 'none';
+    dockBase.style.webkitBackdropFilter = enabled ? '' : 'none';
+  }
+}
+
+function toggleCompactMode() {
+  const compact = document.getElementById('toggleCompact').checked;
+  document.body.style.fontSize = compact ? '13px' : '';
+}
+
+// 监听系统主题变化
+if (window.matchMedia) {
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+    if (autoThemeMode) {
+      currentAppTheme = e.matches ? 'dark' : 'light';
+      applyAppTheme();
+    }
+  });
+}
+
+// 初始化主题
+applyAppTheme();
+</script>
+</body>
+</html>

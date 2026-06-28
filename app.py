@@ -1,3 +1,8 @@
+from flask import Flask
+
+app = Flask(__name__)
+
+HTML_CONTENT = """
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -689,8 +694,7 @@ const DEFAULT_DATA = [
   {id:13,name:'徐雨菲',dept:'社联会',position:'干事',duty:'社团联络、活动协调',joinDate:'2025-10-15',leaveDate:''},
 ];
 
-const HASH_SALT = 'SU_HG_2025_LGKJ';
-const DEFAULT_PASSWORD_HASH = 'd5a5d426cd7786950e59b8a714186ca384da908a40c7b7bfdccfbbb64b668df7';
+const ALL_DEPTS = ['秘书处','学习部','体育部','宣传部','纪检部','生活部','社联会'];
 
 let members = [];
 let currentUser = {name:'',role:'',dept:'',position:'',isAdmin:false,isDeptAdmin:false,isMember:false};
@@ -705,13 +709,7 @@ function loadData(){
   localStorage.removeItem('su_members_data');
   localStorage.removeItem('su_members_data_v2');
   const saved = localStorage.getItem(STORAGE_KEY);
-  if(saved){
-    try{ members = JSON.parse(saved); }catch(e){ members = [...DEFAULT_DATA]; }
-  } else {
-    members = [...DEFAULT_DATA];
-  }
-  // 确保每个成员都有 passwordHash 字段
-  members.forEach(m => { if(!m.passwordHash) m.passwordHash = DEFAULT_PASSWORD_HASH; });
+  members = saved ? JSON.parse(saved) : [...DEFAULT_DATA];
   if(!saved) saveData();
 }
 function saveData(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(members)); }
@@ -736,40 +734,25 @@ function selectRole(role){
   event.currentTarget.classList.add('active');
 }
 
-async function handleLogin(){
+function handleLogin(){
   const user = document.getElementById('loginUser').value.trim();
   const pass = document.getElementById('loginPass').value;
-  if(!user || !pass){
+  if(!user || pass !== '123456'){
     const err = document.getElementById('loginError');
     err.style.display = 'block';
     setTimeout(() => err.style.display = 'none', 3000);
     return;
   }
-
-  // SHA-256 密码哈希验证
-  async function sha256(str){
-    const encoded = new TextEncoder().encode(HASH_SALT + str);
-    const buf = await crypto.subtle.digest('SHA-256', encoded);
-    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-  }
-  const passHash = await sha256(pass);
   loadData();
   let profileData = null;
 
   const found = members.find(m => m.name === user);
-      if(!found){
-        const err = document.getElementById('loginError');
-        err.style.display = 'block';
-        setTimeout(() => err.style.display = 'none', 3000);
-        return;
-      }
-      // 验证密码哈希
-      if(found.passwordHash && found.passwordHash !== passHash){
-        const err = document.getElementById('loginError');
-        err.style.display = 'block';
-        setTimeout(() => err.style.display = 'none', 3000);
-        return;
-      }
+  if(!found){
+    const err = document.getElementById('loginError');
+    err.style.display = 'block';
+    setTimeout(() => err.style.display = 'none', 3000);
+    return;
+  }
   profileData = found;
   if(selectedRole === '成员'){
     currentUser = {name:found.name, role:'成员', dept:found.dept, position:found.position, isAdmin:false, isDeptAdmin:false, isMember:true};
@@ -988,7 +971,7 @@ function renderTable(){
       const c = avatarColors[(m.id||i) % avatarColors.length];
       const isActive = !m.leaveDate;
       const accountCell = (currentUser.isAdmin || (currentUser.isDeptAdmin && m.dept === currentUser.dept))
-        ? `<td style="color:var(--text-secondary);font-size:13px"><span style="opacity:.7">用户名：</span>${m.name} <span style="opacity:.5;margin-left:2px">/ 密码哈希：${(m.passwordHash||'').substring(0,8)}...</span></td>`
+        ? `<td style="color:var(--text-secondary);font-size:13px"><span style="opacity:.7">用户名：</span>${m.name} <span style="opacity:.5;margin-left:2px">/ 密码：123456</span></td>`
         : (showAdmin ? `<td style="color:rgba(128,128,128,0.3);font-size:13px">******</td>` : '');
       const actionCell = canManage(m) ? `<td><div class="actions-cell">
           <button class="icon-btn" title="编辑" onclick="openModal('edit',${m.id})">✏</button>
@@ -1109,11 +1092,11 @@ function exportData(){
   const list = getVisibleMembers();
   const showAcct = currentUser.isAdmin || currentUser.isDeptAdmin;
   const headers = showAcct
-    ? ['姓名','账号','密码哈希','部门','职位','主要负责','入职时间','离职时间','状态']
+    ? ['姓名','账号','密码','部门','职位','主要负责','入职时间','离职时间','状态']
     : ['姓名','部门','职位','主要负责','入职时间','离职时间','状态'];
   const rows = list.map(m => {
     const base = [m.name, m.dept, m.position, m.duty, m.joinDate, m.leaveDate||'', m.leaveDate?'离职':'在任'];
-    if(showAcct) base.splice(1, 0, m.name, m.passwordHash || DEFAULT_PASSWORD_HASH);
+    if(showAcct) base.splice(1, 0, m.name, '123456');
     return base;
   });
   let csv = '\uFEFF' + headers.join(',') + '\n' + rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
@@ -1154,10 +1137,9 @@ function importExcel(event){
         const exists = members.find(m => m.name === name);
         if(exists){
           Object.assign(exists, {dept, position, duty, joinDate, leaveDate});
-          if(row['密码哈希']) exists.passwordHash = row['密码哈希'].toString().trim();
         } else {
           const newId = members.length ? Math.max(...members.map(m=>m.id)) + 1 : 1;
-          members.push({id:newId, name, dept, position, duty, joinDate, leaveDate, passwordHash: DEFAULT_PASSWORD_HASH});
+          members.push({id:newId, name, dept, position, duty, joinDate, leaveDate});
         }
         imported++;
       });
@@ -1755,3 +1737,12 @@ applyAppTheme();
 </script>
 </body>
 </html>
+
+"""
+
+@app.route('/')
+def index():
+    return HTML_CONTENT
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)

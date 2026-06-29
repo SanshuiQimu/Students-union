@@ -526,7 +526,15 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
       </div>
 
       <div class="settings-group">
-        <div class="settings-group-title">设计</div>
+    <div class="settings-group-title">账户</div>
+    <div class="settings-item" style="cursor:pointer" onclick="openChangePwdFromSettings()">
+      <span>修改密码</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="color:var(--text-secondary)"><polyline points="9 18 15 12 9 6"></polyline></svg>
+    </div>
+  </div>
+
+  <div class="settings-group">
+    <div class="settings-group-title">设计</div>
         <div class="settings-item">
           <span>Liquid Glass 效果</span>
           <label class="toggle"><input type="checkbox" id="toggleLiquidGlass" checked onchange="toggleLiquidGlassEffect()"><span class="toggle-slider"></span></label>
@@ -665,6 +673,35 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeConfirm()">取消</button>
       <button class="btn btn-danger" id="confirmDelBtn">确认删除</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CHANGE PASSWORD MODAL ===== -->
+<div class="modal-overlay" id="changePwdModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header"><h2>🔒 修改密码</h2><button class="modal-close" onclick="closeChangePwd()">&times;</button></div>
+    <div class="modal-body">
+      <div id="changePwdHint" style="background:rgba(226,176,74,0.12);border:1px solid rgba(226,176,74,0.3);border-radius:10px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#e2b04a;line-height:1.6">
+        ⚠️ 您的当前密码过于简单，为了账户安全，请修改密码后再继续使用。
+      </div>
+      <div class="form-group">
+        <label>原密码</label>
+        <input type="password" id="oldPwdInput" placeholder="请输入原密码">
+      </div>
+      <div class="form-group">
+        <label>新密码</label>
+        <input type="password" id="newPwdInput" placeholder="请输入新密码（至少6位）">
+      </div>
+      <div class="form-group">
+        <label>确认新密码</label>
+        <input type="password" id="confirmPwdInput" placeholder="请再次输入新密码">
+      </div>
+      <p id="changePwdError" style="color:var(--danger);font-size:13px;display:none;margin-top:-8px"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="changePwdSkipBtn" onclick="closeChangePwd()">稍后再说</button>
+      <button class="btn btn-primary" onclick="handleChangePwd()">确认修改</button>
     </div>
   </div>
 </div>
@@ -861,6 +898,12 @@ function handleLogin(){
   }
 
   initMain();
+
+  // 检测密码是否为默认密码123456，弹窗提示修改
+  if(found.passwordHash === DEFAULT_PASSWORD_HASH){
+    document.getElementById('changePwdHint').style.display = 'block';
+    document.getElementById('changePwdModal').classList.add('show');
+  }
 }
 
 function handleLogout(){
@@ -1122,6 +1165,59 @@ function confirmDelete(id, name){
 }
 function closeConfirm(){ document.getElementById('confirmModal').classList.remove('show'); }
 
+// ===== CHANGE PASSWORD =====
+function openChangePwdFromSettings(){
+  document.getElementById('changePwdHint').style.display = 'none';
+  document.getElementById('changePwdModal').classList.add('show');
+}
+
+function closeChangePwd(){
+  document.getElementById('changePwdModal').classList.remove('show');
+  document.getElementById('oldPwdInput').value = '';
+  document.getElementById('newPwdInput').value = '';
+  document.getElementById('confirmPwdInput').value = '';
+  document.getElementById('changePwdError').style.display = 'none';
+}
+
+function handleChangePwd(){
+  const oldPwd = document.getElementById('oldPwdInput').value;
+  const newPwd = document.getElementById('newPwdInput').value;
+  const confirmPwd = document.getElementById('confirmPwdInput').value;
+  const errEl = document.getElementById('changePwdError');
+
+  // 校验原密码
+  const oldHash = sha256(oldPwd);
+  const found = members.find(m => m.name === currentUser.name);
+  if(!found || found.passwordHash !== oldHash){
+    errEl.textContent = '原密码不正确';
+    errEl.style.display = 'block';
+    return;
+  }
+  // 校验新密码长度
+  if(newPwd.length < 6){
+    errEl.textContent = '新密码长度至少6位';
+    errEl.style.display = 'block';
+    return;
+  }
+  // 校验新密码不能与原密码相同
+  if(newPwd === oldPwd){
+    errEl.textContent = '新密码不能与原密码相同';
+    errEl.style.display = 'block';
+    return;
+  }
+  // 校验两次输入一致
+  if(newPwd !== confirmPwd){
+    errEl.textContent = '两次输入的新密码不一致';
+    errEl.style.display = 'block';
+    return;
+  }
+  // 更新密码哈希
+  found.passwordHash = sha256(newPwd);
+  saveData();
+  closeChangePwd();
+  showToast('success', '密码修改成功');
+}
+
 // ===== EXPORT =====
 function exportData(){
   const list = getVisibleMembers();
@@ -1218,6 +1314,7 @@ function showToast(type, msg){
 // ===== CLICK OUTSIDE MODAL =====
 document.getElementById('memberModal').addEventListener('click', e => { if(e.target === e.currentTarget) closeModal(); });
 document.getElementById('confirmModal').addEventListener('click', e => { if(e.target === e.currentTarget) closeConfirm(); });
+document.getElementById('changePwdModal').addEventListener('click', e => { if(e.target === e.currentTarget) closeChangePwd(); });
 
 /* ==============================================
    Liquid Glass Core JS

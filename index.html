@@ -757,19 +757,19 @@ async function handleLogin(){
   let profileData = null;
 
   const found = members.find(m => m.name === user);
-      if(!found){
-        const err = document.getElementById('loginError');
-        err.style.display = 'block';
-        setTimeout(() => err.style.display = 'none', 3000);
-        return;
-      }
-      // 验证密码哈希
-      if(found.passwordHash && found.passwordHash !== passHash){
-        const err = document.getElementById('loginError');
-        err.style.display = 'block';
-        setTimeout(() => err.style.display = 'none', 3000);
-        return;
-      }
+  if(!found){
+    const err = document.getElementById('loginError');
+    err.style.display = 'block';
+    setTimeout(() => err.style.display = 'none', 3000);
+    return;
+  }
+  // 验证密码哈希
+  if(found.passwordHash && found.passwordHash !== passHash){
+    const err = document.getElementById('loginError');
+    err.style.display = 'block';
+    setTimeout(() => err.style.display = 'none', 3000);
+    return;
+  }
   profileData = found;
   if(selectedRole === '成员'){
     currentUser = {name:found.name, role:'成员', dept:found.dept, position:found.position, isAdmin:false, isDeptAdmin:false, isMember:true};

@@ -566,19 +566,19 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
         </div>
       </div>
     </div>
-  </div>
-</div>
 
-<!-- ===== MESSAGES PAGE ===== -->
-<div class="tab-page" id="msgPage" style="display:none;padding-top:20px">
-  <div style="max-width:600px;margin:0 auto;padding:0 20px">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
-      <button class="btn btn-secondary" onclick="closeMessages()" style="padding:8px 14px;font-size:13px">← 返回</button>
-      <h2 style="font-size:18px;font-weight:600">消息通知</h2>
+    <!-- Messages sub-page -->
+    <div id="msgPage" style="display:none;padding-top:20px">
+      <div style="max-width:600px;margin:0 auto;padding:0 20px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+          <button class="btn btn-secondary" onclick="closeMessages()" style="padding:8px 14px;font-size:13px">← 返回</button>
+          <h2 style="font-size:18px;font-weight:600">消息通知</h2>
+        </div>
+      </div>
+      <div class="msg-list-container" id="msgList">
+        <div class="msg-empty">暂无消息</div>
+      </div>
     </div>
-  </div>
-  <div class="msg-list-container" id="msgList">
-    <div class="msg-empty">暂无消息</div>
   </div>
 </div>
 
@@ -965,6 +965,10 @@ document.getElementById('loginPass').addEventListener('keydown', e => { if(e.key
 // ===== TAB SWITCHING =====
 function switchTab(idx){
   currentTab = idx;
+  // 如果消息子页面正在显示，关闭它
+  if(document.getElementById('msgPage').style.display === 'block'){
+    closeMessages();
+  }
   document.querySelectorAll('.tab-page').forEach((p,i) => {
     p.classList.toggle('active', i === idx);
   });
@@ -1361,7 +1365,11 @@ function markAllRead(){
   saveMessages(allMsgs);
 }
 function openMessages(){
-  document.getElementById('tabPage3').style.display = 'none';
+  // 隐藏设置页内容，显示消息子页面
+  var settingsContent = document.getElementById('tabPage4').querySelector('.settings-section');
+  var allGroups = document.getElementById('tabPage4').querySelectorAll('.settings-group');
+  if(settingsContent) settingsContent.style.display = 'none';
+  allGroups.forEach(function(g){ g.style.display = 'none'; });
   document.getElementById('msgPage').style.display = 'block';
   renderMessages();
   markAllRead();
@@ -1369,7 +1377,10 @@ function openMessages(){
 }
 function closeMessages(){
   document.getElementById('msgPage').style.display = 'none';
-  document.getElementById('tabPage3').style.display = 'block';
+  var settingsContent = document.getElementById('tabPage4').querySelector('.settings-section');
+  var allGroups = document.getElementById('tabPage4').querySelectorAll('.settings-group');
+  if(settingsContent) settingsContent.style.display = '';
+  allGroups.forEach(function(g){ g.style.display = ''; });
 }
 function renderMessages(){
   var list = getMyMessages();
@@ -1514,10 +1525,12 @@ function getHollowPillMask(w, h, b) {
   return `url("data:image/svg+xml;utf8,${encodeURIComponent(svg)}")`;
 }
 
+try {
 document.documentElement.style.setProperty("--slider-mask-solid", getSolidPillMask(79, 48));
 document.documentElement.style.setProperty("--slider-mask-hollow", getHollowPillMask(79, 48, 1.2));
 document.getElementById("dock-wrapper").style.setProperty("--mask-solid", getSolidPillMask(324, 55));
 document.getElementById("dock-wrapper").style.setProperty("--mask-hollow", getHollowPillMask(324, 55, 1.5));
+} catch(e) { console.warn('Mask init failed:', e); }
 
 /* Core 2: Generate displacement map + specular map, assemble SVG filter */
 let targetGlassScale = 0;
@@ -1644,6 +1657,7 @@ function generateSpecularMap(w, h, radius, bezelWidth, angle = Math.PI/3) {
 }
 
 function initLiquidGlass() {
+  try {
   const defs = document.getElementById("svg-defs");
   defs.innerHTML = "";
 
@@ -1695,6 +1709,7 @@ function initLiquidGlass() {
 
   buildFilter("liquid-glass-dispersion-filter", 79, 48, "glass", true, LIQUID_CONFIG.sliderThickness, LIQUID_CONFIG.sliderBlur, true, LIQUID_CONFIG.sliderDispR, LIQUID_CONFIG.sliderDispB, LIQUID_CONFIG.sliderBaseZoom);
   buildFilter("dock-glass-filter", 324, 55, "dock", false, LIQUID_CONFIG.dockThickness, LIQUID_CONFIG.dockBlur, true, LIQUID_CONFIG.dockDispR, LIQUID_CONFIG.dockDispB, 1);
+  } catch(e) { console.warn('Liquid Glass init failed, using fallback:', e); }
 }
 
 initLiquidGlass();

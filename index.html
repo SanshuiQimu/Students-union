@@ -210,12 +210,8 @@
   .ripple-layer{position:absolute;inset:0;z-index:2;overflow:hidden;pointer-events:none;-webkit-mask-image:var(--mask-solid);mask-image:var(--mask-solid);-webkit-mask-size:100% 100%;mask-size:100% 100%}
   .ripple-wave{position:absolute;width:120px;height:120px;border-radius:50%;pointer-events:none;opacity:1;background:radial-gradient(circle,rgba(255,255,255,0.7) 0%,rgba(255,255,255,0) 60%);transform:translate(-50%,-50%) scale(0);animation:ripple-anim 0.6s cubic-bezier(0.25,1,0.5,1) forwards}
   @keyframes ripple-anim{to{opacity:0;transform:translate(-50%,-50%) scale(2.2)}}
-  .dock-items-wrap{position:absolute;inset:0;z-index:998;color:var(--fg-color);touch-action:none}
-  .dock-item{position:absolute;top:2px;width:81.5px;height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:inherit;cursor:pointer;z-index:1000;transform-origin:center center;transition:color 0.3s ease,transform 0.3s cubic-bezier(0.25,1,0.5,1)}
-  .dock-item:nth-child(1){left:3px}
-  .dock-item:nth-child(2){left:83px}
-  .dock-item:nth-child(3){left:162px}
-  .dock-item:nth-child(4){left:242px}
+  .dock-items-wrap{position:absolute;inset:0;display:flex;align-items:flex-start;color:var(--fg-color);touch-action:none;z-index:998;padding-top:2px}
+  .dock-item{flex:0 0 81.5px;height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:inherit;cursor:pointer;transform-origin:center center;transition:color 0.3s ease,transform 0.3s cubic-bezier(0.25,1,0.5,1)}
   .dock-item svg{width:25px;height:25px}
   .dock-item span{margin-top:4px;font-size:10px;font-weight:800;letter-spacing:0.5px}
   .dock-item.active{color:var(--theme-color)}

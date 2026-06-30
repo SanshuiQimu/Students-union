@@ -210,17 +210,16 @@
   .ripple-layer{position:absolute;inset:0;z-index:2;overflow:hidden;pointer-events:none;-webkit-mask-image:var(--mask-solid);mask-image:var(--mask-solid);-webkit-mask-size:100% 100%;mask-size:100% 100%}
   .ripple-wave{position:absolute;width:120px;height:120px;border-radius:50%;pointer-events:none;opacity:1;background:radial-gradient(circle,rgba(255,255,255,0.7) 0%,rgba(255,255,255,0) 60%);transform:translate(-50%,-50%) scale(0);animation:ripple-anim 0.6s cubic-bezier(0.25,1,0.5,1) forwards}
   @keyframes ripple-anim{to{opacity:0;transform:translate(-50%,-50%) scale(2.2)}}
-  .dock-items-wrap,.dock-active-layer{position:absolute;inset:0;z-index:998}
-  .dock-items-wrap{color:var(--fg-color);touch-action:none;-webkit-mask-image:linear-gradient(#000,#000),var(--slider-mask-solid);mask-image:linear-gradient(#000,#000),var(--slider-mask-solid);-webkit-mask-size:100% 100%,var(--clipW) var(--clipH);mask-size:100% 100%,var(--clipW) var(--clipH);-webkit-mask-position:0 0,var(--clipL) var(--clipT);mask-position:0 0,var(--clipL) var(--clipT);-webkit-mask-repeat:no-repeat,no-repeat;mask-repeat:no-repeat,no-repeat;-webkit-mask-composite:destination-out;mask-composite:exclude}
-  .dock-item{position:absolute;top:3.5px;width:81.5px;height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:inherit;cursor:pointer;z-index:3;transform-origin:center center;transition:transform 0.3s cubic-bezier(0.25,1,0.5,1)}
+  .dock-items-wrap{position:absolute;inset:0;z-index:998;color:var(--fg-color);touch-action:none}
+  .dock-item{position:absolute;top:3.5px;width:81.5px;height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:inherit;cursor:pointer;z-index:3;transform-origin:center center;transition:color 0.3s ease,transform 0.3s cubic-bezier(0.25,1,0.5,1)}
   .dock-item:nth-child(1){left:3px}
   .dock-item:nth-child(2){left:83px}
   .dock-item:nth-child(3){left:162px}
   .dock-item:nth-child(4){left:242px}
   .dock-item svg{width:25px;height:25px}
   .dock-item span{margin-top:4px;font-size:10px;font-weight:800;letter-spacing:0.5px}
-  .dock-active-layer{color:var(--theme-color);opacity:1;pointer-events:none;-webkit-mask-image:var(--slider-mask-solid);mask-image:var(--slider-mask-solid);-webkit-mask-size:var(--clipW) var(--clipH);mask-size:var(--clipW) var(--clipH);-webkit-mask-position:var(--clipL) var(--clipT);mask-position:var(--clipL) var(--clipT);-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
-  .dock-container.expanding .dock-active-layer .dock-item{transform:scale(1.1)}
+  .dock-item.active{color:var(--theme-color)}
+  .dock-container.expanding .dock-item.active{transform:scale(1.1)}
   #frosted-slider{position:absolute;top:3.5px;left:4px;width:79px;height:48px;z-index:999;overflow:hidden;opacity:1;pointer-events:auto;touch-action:none;background-color:rgba(var(--slider-tint-rgb),0.15);box-shadow:0 2px 8px rgba(0,0,0,0.06);transform:translateZ(0);-webkit-mask-image:var(--slider-mask-solid);mask-image:var(--slider-mask-solid);-webkit-mask-size:100% 100%;mask-size:100% 100%;-webkit-backdrop-filter:url(#liquid-glass-dispersion-filter);backdrop-filter:url(#liquid-glass-dispersion-filter);transition:background-color 0.4s ease,box-shadow 0.4s ease}
   #frosted-slider.expanding{background-color:rgba(var(--slider-tint-rgb),0.06);box-shadow:inset 0 0 var(--inner-shadow-blur) var(--inner-shadow-spread) var(--inner-shadow-color),0 2px var(--outer-shadow-blur) rgba(0,0,0,0.2)}
   #frosted-slider::after{content:"";position:absolute;inset:0;z-index:9999;pointer-events:none;opacity:0;background:linear-gradient(135deg,rgba(255,255,255,0.9) 0%,transparent 50%),linear-gradient(-35deg,rgba(255,255,255,0.9) 0%,transparent 50%);mix-blend-mode:plus-lighter;-webkit-mask-image:var(--slider-mask-hollow);mask-image:var(--slider-mask-hollow);-webkit-mask-size:100% 100%;mask-size:100% 100%;transition:opacity 0.4s ease}
@@ -567,17 +566,19 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
       </div>
     </div>
 
-    <!-- Messages sub-page -->
-    <div id="msgPage" style="display:none;padding-top:20px">
-      <div style="max-width:600px;margin:0 auto;padding:0 20px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
-          <button class="btn btn-secondary" onclick="closeMessages()" style="padding:8px 14px;font-size:13px">← 返回</button>
-          <h2 style="font-size:18px;font-weight:600">消息通知</h2>
-        </div>
-      </div>
-      <div class="msg-list-container" id="msgList">
-        <div class="msg-empty">暂无消息</div>
-      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== FULLSCREEN MESSAGES PAGE ===== -->
+<div id="msgPage" style="display:none;position:fixed;inset:0;z-index:2000;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch">
+  <div style="max-width:600px;margin:0 auto;padding:20px 20px 100px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;padding-top:10px">
+      <button class="btn btn-secondary" onclick="closeMessages()" style="padding:8px 14px;font-size:13px">← 返回设置</button>
+      <h2 style="font-size:18px;font-weight:600">消息通知</h2>
+    </div>
+    <div id="msgList">
+      <div class="msg-empty">暂无消息</div>
     </div>
   </div>
 </div>
@@ -632,37 +633,6 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
       </div>
 
       <div id="frosted-slider"></div>
-
-      <div class="dock-active-layer" id="active-mask">
-        <div class="dock-item" data-tab="0">
-          <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 9v-1a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v1z"/>
-            <path d="M3 11v5a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5z"/>
-          </svg><span id="dockTabLabelActive0">秘书处</span>
-        </div>
-        <div class="dock-item" data-tab="1">
-          <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="7" height="7" rx="1"/>
-            <rect x="14" y="3" width="7" height="7" rx="1"/>
-            <rect x="3" y="14" width="7" height="7" rx="1"/>
-            <rect x="14" y="14" width="7" height="7" rx="1"/>
-          </svg><span>部门概览</span>
-        </div>
-        <div class="dock-item" data-tab="2">
-          <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-          </svg><span>成员列表</span>
-        </div>
-        <div class="dock-item" data-tab="3">
-          <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-            <circle cx="12" cy="7" r="4"/>
-          </svg><span>设置</span>
-        </div>
-      </div>
     </div>
   </div>
 </nav>
@@ -913,7 +883,6 @@ function handleLogin(){
   // Update dock tab label to show user's department
   const deptLabel = currentUser.dept || '秘书处';
   document.getElementById('dockTabLabel0').textContent = deptLabel;
-  document.getElementById('dockTabLabelActive0').textContent = deptLabel;
 
   // Permission-based UI
   const showAdmin = currentUser.isAdmin || currentUser.isDeptAdmin;
@@ -941,6 +910,8 @@ function handleLogin(){
   }
 
   initMain();
+  // 初始化 dock 第一个 tab 为 active
+  setActiveIndex(0);
 
   // 检测密码是否为默认密码123456，弹窗提示修改
   if(found.passwordHash === DEFAULT_PASSWORD_HASH){
@@ -965,10 +936,8 @@ document.getElementById('loginPass').addEventListener('keydown', e => { if(e.key
 // ===== TAB SWITCHING =====
 function switchTab(idx){
   currentTab = idx;
-  // 如果消息子页面正在显示，关闭它
-  if(document.getElementById('msgPage').style.display === 'block'){
-    closeMessages();
-  }
+  // 关闭全屏消息页面（如果打开的话）
+  document.getElementById('msgPage').style.display = 'none';
   document.querySelectorAll('.tab-page').forEach((p,i) => {
     p.classList.toggle('active', i === idx);
   });
@@ -1365,11 +1334,6 @@ function markAllRead(){
   saveMessages(allMsgs);
 }
 function openMessages(){
-  // 隐藏设置页内容，显示消息子页面
-  var settingsContent = document.getElementById('tabPage4').querySelector('.settings-section');
-  var allGroups = document.getElementById('tabPage4').querySelectorAll('.settings-group');
-  if(settingsContent) settingsContent.style.display = 'none';
-  allGroups.forEach(function(g){ g.style.display = 'none'; });
   document.getElementById('msgPage').style.display = 'block';
   renderMessages();
   markAllRead();
@@ -1377,10 +1341,6 @@ function openMessages(){
 }
 function closeMessages(){
   document.getElementById('msgPage').style.display = 'none';
-  var settingsContent = document.getElementById('tabPage4').querySelector('.settings-section');
-  var allGroups = document.getElementById('tabPage4').querySelectorAll('.settings-group');
-  if(settingsContent) settingsContent.style.display = '';
-  allGroups.forEach(function(g){ g.style.display = ''; });
 }
 function renderMessages(){
   var list = getMyMessages();
@@ -1773,6 +1733,10 @@ function setExpanding(val) {
 
 function setActiveIndex(idx) {
   currentActiveIndex = idx;
+  // 更新 dock-item active 状态
+  document.querySelectorAll('.dock-items-wrap .dock-item').forEach((item, i) => {
+    item.classList.toggle('active', i === idx);
+  });
   switchTab(idx);
 }
 

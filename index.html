@@ -322,10 +322,10 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
 .msg-item.unread .msg-title::before{content:'';display:inline-block;width:6px;height:6px;background:#ef4444;border-radius:50%;margin-right:6px;vertical-align:middle}
 .msg-empty{text-align:center;padding:60px 20px;color:var(--text-secondary);font-size:14px}
 
-/* ===== MSG PAGE TRANSITION ===== */
-#msgPage{transition:transform .4s cubic-bezier(.25,1,.5,1),opacity .4s cubic-bezier(.25,1,.5,1)}
-#msgPage.slide-out-left{transform:translateX(100%);opacity:0;pointer-events:none}
-#msgPage.slide-in-left{transform:translateX(0);opacity:1;pointer-events:auto}
+/* ===== FULLSCREEN PAGE TRANSITION ===== */
+.fullpage-slide{transition:transform .4s cubic-bezier(.25,1,.5,1),opacity .4s cubic-bezier(.25,1,.5,1)}
+.fullpage-slide.slide-out-left{transform:translateX(100%);opacity:0;pointer-events:none}
+.fullpage-slide.slide-in-left{transform:translateX(0);opacity:1;pointer-events:auto}
 </style>
 </head>
 <body>
@@ -577,7 +577,7 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
 </div>
 
 <!-- ===== FULLSCREEN MESSAGES PAGE ===== -->
-<div id="msgPage" class="slide-out-left" style="position:fixed;inset:0;z-index:2000;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch">
+<div id="msgPage" class="fullpage-slide slide-out-left" style="position:fixed;inset:0;z-index:2000;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch">
   <div style="max-width:600px;margin:0 auto;padding:20px 20px 100px">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;padding-top:10px">
       <button class="btn btn-secondary" onclick="closeMessages()" style="padding:8px 14px;font-size:13px">← 返回设置</button>
@@ -590,7 +590,7 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
 </div>
 
 <!-- ===== BADGE APPLY PAGE ===== -->
-<div id="badgePage" class="slide-out-left" style="position:fixed;inset:0;z-index:2000;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch">
+<div id="badgePage" class="fullpage-slide slide-out-left" style="position:fixed;inset:0;z-index:2000;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch">
   <div style="max-width:600px;margin:0 auto;padding:20px 20px 100px">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;padding-top:10px">
       <button class="btn btn-secondary" onclick="closeBadgeApply()" style="padding:8px 14px;font-size:13px">← 返回设置</button>

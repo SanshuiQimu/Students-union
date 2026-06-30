@@ -553,6 +553,10 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
       <span>修改密码</span>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="color:var(--text-secondary)"><polyline points="9 18 15 12 9 6"></polyline></svg>
     </div>
+    <div class="settings-item" style="cursor:pointer" onclick="openBadgeApply()">
+      <span>挂牌补办</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="color:var(--text-secondary)"><polyline points="9 18 15 12 9 6"></polyline></svg>
+    </div>
   </div>
 
   <div class="settings-group">
@@ -581,6 +585,35 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
     </div>
     <div id="msgList">
       <div class="msg-empty">暂无消息</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== BADGE APPLY PAGE ===== -->
+<div id="badgePage" class="slide-out-left" style="position:fixed;inset:0;z-index:2000;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch">
+  <div style="max-width:600px;margin:0 auto;padding:20px 20px 100px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;padding-top:10px">
+      <button class="btn btn-secondary" onclick="closeBadgeApply()" style="padding:8px 14px;font-size:13px">← 返回设置</button>
+      <h2 style="font-size:18px;font-weight:600">挂牌补办申请</h2>
+    </div>
+    <div class="login-card" style="margin-top:20px">
+      <p style="font-size:14px;color:var(--text-secondary);line-height:1.8;margin-bottom:20px">
+        请确认以下声明后提交申请，申请将发送至秘书处进行审批。
+      </p>
+      <div class="form-group">
+        <label>申请人</label>
+        <input type="text" id="badgeAppName" readonly style="background:var(--bg);color:var(--text-secondary);cursor:not-allowed">
+      </div>
+      <div class="form-group">
+        <label>部门</label>
+        <input type="text" id="badgeAppDept" readonly style="background:var(--bg);color:var(--text-secondary);cursor:not-allowed">
+      </div>
+      <div class="form-group">
+        <label>确认声明 <span style="color:var(--danger);font-size:12px">*必填</span></label>
+        <textarea id="badgeConfirmText" rows="3" placeholder="请输入：我确认我的挂牌已经丢失，需要补办" style="width:100%;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;resize:none;font-family:inherit;transition:border-color .3s" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="submitBadgeApply()" style="width:100%;margin-top:8px;padding:14px;font-size:15px;font-weight:600">提交申请</button>
+      <p id="badgeAppError" style="color:var(--danger);font-size:13px;display:none;margin-top:8px;text-align:center"></p>
     </div>
   </div>
 </div>
@@ -1027,6 +1060,7 @@ function switchTab(idx){
   currentTab = idx;
   // 关闭全屏消息页面（如果打开的话）
   closeMessages();
+  closeBadgeApply();
   document.querySelectorAll('.tab-page').forEach((p,i) => {
     p.classList.toggle('active', i === idx);
   });
@@ -1420,7 +1454,7 @@ function updateMsgBadge(){
     if(unread) b.classList.add('show'); else b.classList.remove('show');
   });
 }
-function sendMsg(to, title, body, operatorName, operatorDept){
+function sendMsg(to, title, body, operatorName, operatorDept, type, applicantName){
   var msgs = loadMessages();
   msgs.push({
     id: msgs.length ? Math.max.apply(null, msgs.map(function(m){return m.id})) + 1 : 1,
@@ -1430,9 +1464,63 @@ function sendMsg(to, title, body, operatorName, operatorDept){
     operator: operatorName || '系统',
     operatorDept: operatorDept || '秘书处',
     time: new Date().toLocaleString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}),
-    read: false
+    read: false,
+    type: type || 'info',
+    applicant: applicantName || ''
   });
   saveMessages(msgs);
+}
+
+// ===== BADGE APPLY =====
+var _badgePage = null;
+function getBadgePage(){ if(!_badgePage) _badgePage = document.getElementById('badgePage'); return _badgePage; }
+function openBadgeApply(){
+  document.getElementById('badgeAppName').value = currentUser.name;
+  document.getElementById('badgeAppDept').value = currentUser.dept;
+  document.getElementById('badgeConfirmText').value = '';
+  document.getElementById('badgeAppError').style.display = 'none';
+  var p = getBadgePage();
+  p.classList.remove('slide-out-left');
+  p.classList.add('slide-in-left');
+}
+function closeBadgeApply(){
+  var p = getBadgePage();
+  p.classList.remove('slide-in-left');
+  p.classList.add('slide-out-left');
+}
+function submitBadgeApply(){
+  var text = document.getElementById('badgeConfirmText').value.trim();
+  var errEl = document.getElementById('badgeAppError');
+  if(text !== '我确认我的挂牌已经丢失，需要补办'){
+    errEl.textContent = '请输入正确的确认声明';
+    errEl.style.display = 'block';
+    setTimeout(function(){ errEl.style.display = 'none'; }, 3000);
+    return;
+  }
+  // 发送申请消息给秘书处所有成员
+  var secretaries = members.filter(function(m){ return m.dept === '秘书处'; });
+  if(!secretaries.length){
+    errEl.textContent = '系统中未找到秘书处成员，无法提交';
+    errEl.style.display = 'block';
+    setTimeout(function(){ errEl.style.display = 'none'; }, 3000);
+    return;
+  }
+  secretaries.forEach(function(s){
+    sendMsg(s.name,
+      '挂牌补办申请 - ' + currentUser.name,
+      currentUser.name + '（' + currentUser.dept + '）提交了挂牌补办申请，请及时审批。',
+      currentUser.name, currentUser.dept, 'badge-apply', currentUser.name
+    );
+  });
+  // 同时给申请人发一条通知
+  sendMsg(currentUser.name,
+    '挂牌补办申请已提交',
+    '您的挂牌补办申请已提交至秘书处，请等待审批结果。',
+    '系统', '秘书处', 'badge-info'
+  );
+  updateMsgBadge();
+  showToast('success', '申请已提交，请等待秘书处审批');
+  closeBadgeApply();
 }
 function markAllRead(){
   var allMsgs = loadMessages();
@@ -1466,14 +1554,54 @@ function renderMessages(){
   }
   // 最新消息在前
   var sorted = list.slice().reverse();
+  var isSecretary = currentUser.dept === '秘书处';
   container.innerHTML = sorted.map(function(m){
     var cls = m.read ? 'msg-item' : 'msg-item unread';
+    var approveBtns = '';
+    // 秘书处成员看到待审批的挂牌申请，显示审批按钮
+    if(m.type === 'badge-apply' && isSecretary && !m.handled){
+      approveBtns = '<div style="display:flex;gap:10px;margin-top:12px">' +
+        '<button onclick="handleBadgeApprove(\''+m.applicant+'\',\''+m.id+'\')" style="flex:1;padding:10px;border-radius:10px;border:1px solid rgba(72,187,120,0.3);background:rgba(72,187,120,0.15);color:var(--success);font-size:13px;font-weight:600;cursor:pointer;transition:all .3s">同意</button>' +
+        '<button onclick="handleBadgeReject(\''+m.applicant+'\',\''+m.id+'\')" style="flex:1;padding:10px;border-radius:10px;border:1px solid rgba(252,129,129,0.3);background:rgba(252,129,129,0.15);color:var(--danger);font-size:13px;font-weight:600;cursor:pointer;transition:all .3s">驳回</button>' +
+        '</div>';
+    }
     return '<div class="'+cls+'">' +
       '<div class="msg-title">'+m.title+'</div>' +
       '<div class="msg-body">'+m.body+'</div>' +
+      approveBtns +
       '<div class="msg-meta"><span>操作人：'+m.operator+'（'+m.operatorDept+'）</span><span>'+m.time+'</span></div>' +
       '</div>';
   }).join('');
+}
+
+// 审批挂牌补办
+function handleBadgeApprove(applicantName, msgId){
+  // 标记消息已处理
+  var msgs = loadMessages();
+  msgs.forEach(function(m){ if(String(m.id) === String(msgId)) m.handled = true; });
+  saveMessages(msgs);
+  // 通知申请人
+  sendMsg(applicantName,
+    '挂牌补办申请已通过',
+    '你的挂牌补办申请已通过。',
+    currentUser.name, currentUser.dept, 'badge-result'
+  );
+  updateMsgBadge();
+  renderMessages();
+  showToast('success', '已同意 ' + applicantName + ' 的挂牌补办申请');
+}
+function handleBadgeReject(applicantName, msgId){
+  var msgs = loadMessages();
+  msgs.forEach(function(m){ if(String(m.id) === String(msgId)) m.handled = true; });
+  saveMessages(msgs);
+  sendMsg(applicantName,
+    '挂牌补办申请已驳回',
+    '你的挂牌补办申请已驳回。',
+    currentUser.name, currentUser.dept, 'badge-result'
+  );
+  updateMsgBadge();
+  renderMessages();
+  showToast('success', '已驳回 ' + applicantName + ' 的挂牌补办申请');
 }
 
 // ===== EXPORT =====

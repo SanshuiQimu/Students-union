@@ -312,6 +312,19 @@ html.light-mode .table-toolbar{border-color:rgba(0,0,0,0.05)}
 html.light-mode .dock-shadow-layer{box-shadow:0 16px 32px 2px rgba(0,0,0,0.1),0 4px 12px 1px rgba(0,0,0,0.05)}
 html.light-mode #frosted-slider{box-shadow:0 2px 8px rgba(0,0,0,0.05)}
 html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shadow-blur) var(--inner-shadow-spread) var(--inner-shadow-color),0 2px var(--outer-shadow-blur) rgba(0,0,0,0.1)}
+
+/* ===== BADGE & MESSAGES ===== */
+.badge-dot{position:absolute;top:-2px;right:-2px;width:10px;height:10px;background:#ef4444;border-radius:50%;border:2px solid var(--bg);z-index:2;pointer-events:none;display:none}
+.badge-dot.show{display:block}
+.dock-item{position:relative}
+.msg-list-container{padding:0 20px 100px;max-width:600px;margin:0 auto}
+.msg-item{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:10px;transition:all .3s}
+.msg-item.unread{border-left:3px solid var(--gold)}
+.msg-item .msg-title{font-size:14px;font-weight:600;margin-bottom:6px;color:var(--text)}
+.msg-item .msg-body{font-size:13px;color:var(--text-secondary);line-height:1.6;margin-bottom:8px}
+.msg-item .msg-meta{font-size:11px;color:rgba(128,128,128,0.6);display:flex;justify-content:space-between}
+.msg-item.unread .msg-title::before{content:'';display:inline-block;width:6px;height:6px;background:#ef4444;border-radius:50%;margin-right:6px;vertical-align:middle}
+.msg-empty{text-align:center;padding:60px 20px;color:var(--text-secondary);font-size:14px}
 </style>
 </head>
 <body>
@@ -527,6 +540,13 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
 
       <div class="settings-group">
     <div class="settings-group-title">账户</div>
+    <div class="settings-item" style="cursor:pointer" onclick="openMessages()">
+      <span>消息通知</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="badge-dot" id="settingsMsgBadge"></span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="color:var(--text-secondary)"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </div>
+    </div>
     <div class="settings-item" style="cursor:pointer" onclick="openChangePwdFromSettings()">
       <span>修改密码</span>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="color:var(--text-secondary)"><polyline points="9 18 15 12 9 6"></polyline></svg>
@@ -545,6 +565,19 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ===== MESSAGES PAGE ===== -->
+<div class="tab-page" id="msgPage" style="display:none;padding-top:20px">
+  <div style="max-width:600px;margin:0 auto;padding:0 20px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+      <button class="btn btn-secondary" onclick="closeMessages()" style="padding:8px 14px;font-size:13px">← 返回</button>
+      <h2 style="font-size:18px;font-weight:600">消息通知</h2>
+    </div>
+  </div>
+  <div class="msg-list-container" id="msgList">
+    <div class="msg-empty">暂无消息</div>
   </div>
 </div>
 
@@ -593,6 +626,7 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
             <circle cx="12" cy="7" r="4"/>
           </svg><span>设置</span>
+          <span class="badge-dot" id="dockBadge4"></span>
         </div>
       </div>
 
@@ -961,6 +995,16 @@ function initMain(){
   renderDeptGrid();
   buildFilters();
   renderTable();
+  // 首次使用时，给所有成员发送初始部门/职位消息
+  if(!localStorage.getItem('su_msg_initialized')){
+    members.forEach(function(m){
+      sendMsg(m.name, '欢迎加入学生会',
+        '您的部门为' + m.dept + '，职位为' + m.position + '。',
+        '系统', '秘书处');
+    });
+    localStorage.setItem('su_msg_initialized', '1');
+  }
+  updateMsgBadge();
 }
 
 function updateStats(){
@@ -1149,7 +1193,19 @@ function saveMember(){
   }
   if(editId){
     const m = members.find(x => x.id == editId);
-    if(m){ Object.assign(m, {name,dept,position,duty,joinDate,leaveDate}); }
+    if(m){
+      // 检测部门/职位变动，发送通知
+      var changes = [];
+      if(m.dept !== dept) changes.push('部门由「' + m.dept + '」变更为「' + dept + '」');
+      if(m.position !== position) changes.push('职位由「' + m.position + '」变更为「' + position + '」');
+      Object.assign(m, {name,dept,position,duty,joinDate,leaveDate});
+      if(changes.length){
+        sendMsg(name, '信息变动通知',
+          '您的' + changes.join('，') + '。',
+          currentUser.name, currentUser.dept);
+        setTimeout(updateMsgBadge, 100);
+      }
+    }
     showToast('success', `已更新 ${name} 的信息`);
   } else {
     if(currentUser.isDeptAdmin && !currentUser.isAdmin && dept !== currentUser.dept){
@@ -1267,6 +1323,81 @@ function handleChangePwd(){
   saveData();
   closeChangePwd();
   showToast('success', '密码修改成功');
+}
+
+// ===== MESSAGES =====
+var MSG_KEY = 'su_messages_data';
+
+function loadMessages(){
+  var saved = localStorage.getItem(MSG_KEY);
+  return saved ? JSON.parse(saved) : [];
+}
+function saveMessages(msgs){
+  localStorage.setItem(MSG_KEY, JSON.stringify(msgs));
+}
+function getMyMessages(){
+  var allMsgs = loadMessages();
+  return allMsgs.filter(function(m){ return m.to === currentUser.name; });
+}
+function hasUnread(){
+  return getMyMessages().some(function(m){ return !m.read; });
+}
+function updateMsgBadge(){
+  var unread = hasUnread();
+  var badges = document.querySelectorAll('#dockBadge4, #settingsMsgBadge');
+  badges.forEach(function(b){
+    if(unread) b.classList.add('show'); else b.classList.remove('show');
+  });
+}
+function sendMsg(to, title, body, operatorName, operatorDept){
+  var msgs = loadMessages();
+  msgs.push({
+    id: msgs.length ? Math.max.apply(null, msgs.map(function(m){return m.id})) + 1 : 1,
+    to: to,
+    title: title,
+    body: body,
+    operator: operatorName || '系统',
+    operatorDept: operatorDept || '秘书处',
+    time: new Date().toLocaleString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}),
+    read: false
+  });
+  saveMessages(msgs);
+}
+function markAllRead(){
+  var allMsgs = loadMessages();
+  allMsgs.forEach(function(m){
+    if(m.to === currentUser.name) m.read = true;
+  });
+  saveMessages(allMsgs);
+}
+function openMessages(){
+  document.getElementById('tabPage3').style.display = 'none';
+  document.getElementById('msgPage').style.display = 'block';
+  renderMessages();
+  markAllRead();
+  setTimeout(updateMsgBadge, 100);
+}
+function closeMessages(){
+  document.getElementById('msgPage').style.display = 'none';
+  document.getElementById('tabPage3').style.display = 'block';
+}
+function renderMessages(){
+  var list = getMyMessages();
+  var container = document.getElementById('msgList');
+  if(!list.length){
+    container.innerHTML = '<div class="msg-empty">暂无消息</div>';
+    return;
+  }
+  // 最新消息在前
+  var sorted = list.slice().reverse();
+  container.innerHTML = sorted.map(function(m){
+    var cls = m.read ? 'msg-item' : 'msg-item unread';
+    return '<div class="'+cls+'">' +
+      '<div class="msg-title">'+m.title+'</div>' +
+      '<div class="msg-body">'+m.body+'</div>' +
+      '<div class="msg-meta"><span>操作人：'+m.operator+'（'+m.operatorDept+'）</span><span>'+m.time+'</span></div>' +
+      '</div>';
+  }).join('');
 }
 
 // ===== EXPORT =====

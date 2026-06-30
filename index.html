@@ -38,7 +38,7 @@
   #loginPage{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
   .login-container{width:100%;max-width:440px;position:relative}
   .login-header{text-align:center;margin-bottom:40px}
-  .login-header .logo{width:72px;height:72px;margin:0 auto 20px;border-radius:18px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 32px rgba(0,0,0,0.2)}
+  .login-header .logo{width:72px;height:72px;margin:0 auto 20px}
   .login-header h1{font-size:26px;font-weight:600;letter-spacing:2px;margin-bottom:8px}
   .login-header p{color:var(--text-secondary);font-size:14px;letter-spacing:4px}
   .login-card{background:var(--bg-card);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:20px;padding:40px;box-shadow:var(--shadow)}
@@ -71,7 +71,7 @@
   /* ===== TOPBAR (for Tab4 "我的") ===== */
   .topbar-card{background:var(--bg-card);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:16px;padding:24px 32px;margin-bottom:28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
   .topbar-left{display:flex;align-items:center;gap:16px}
-  .topbar-logo{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center}
+  .topbar-logo{width:44px;height:44px}
   .topbar-title{font-size:17px;font-weight:600;letter-spacing:1px}
   .topbar-right{display:flex;align-items:center;gap:20px}
   .user-info{display:flex;align-items:center;gap:10px}
@@ -269,7 +269,7 @@ html.light-mode{
 }
 html.light-mode body{background:radial-gradient(circle at 20% 18%,rgba(4,178,133,0.06),transparent 34%),radial-gradient(circle at 82% 24%,rgba(117,92,255,0.04),transparent 32%),radial-gradient(circle at 62% 86%,rgba(255,159,10,0.04),transparent 28%),var(--bg)}
 html.light-mode .bg-animation .circle{background:radial-gradient(circle,rgba(4,178,133,0.06),transparent)}
-html.light-mode .login-header .logo{box-shadow:0 8px 32px rgba(0,0,0,0.1)}
+  html.light-mode .login-header{margin-bottom:40px}
 html.light-mode .login-card{box-shadow:0 20px 60px rgba(0,0,0,0.08)}
 html.light-mode .topbar-card{background:rgba(255,255,255,0.85)}
 html.light-mode .profile-card{background:rgba(255,255,255,0.85)}
@@ -337,7 +337,7 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
 <div id="loginPage">
   <div class="login-container">
     <div class="login-header">
-      <div class="logo"><img src="school-logo.png" style="width:100%;height:100%;object-fit:contain;border-radius:18px" alt="校徽"></div>
+      <div class="logo"><img src="school-logo.png" style="width:100%;height:100%;object-fit:contain" alt="校徽"></div>
       <h1 style="font-size:20px;letter-spacing:2px">华东师范大学附属龙港科技中学</h1>
       <p style="margin-top:14px;font-size:26px;font-weight:600;color:var(--text);letter-spacing:3px">学生会人事管理系统</p>
     </div>
@@ -470,7 +470,7 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
       <!-- Topbar banner -->
       <div class="topbar-card">
         <div class="topbar-left">
-          <div class="topbar-logo"><img src="school-logo.png" style="width:100%;height:100%;object-fit:contain;border-radius:12px" alt="校徽"></div>
+          <div class="topbar-logo"><img src="school-logo.png" style="width:100%;height:100%;object-fit:contain" alt="校徽"></div>
           <span class="topbar-title">华东师范大学附属龙港科技中学 学生会人事管理系统</span>
         </div>
         <div class="topbar-right">

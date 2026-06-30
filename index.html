@@ -858,11 +858,38 @@ function handleLogin(){
     return;
   }
 
-  // 先从本地快速验证，再从云端同步
-  loadFromLocal();
-
-  // SHA-256 密码哈希验证
   const passHash = sha256(pass);
+
+  // 显示加载状态
+  const loginBtn = document.querySelector('.login-btn');
+  const origText = loginBtn.textContent;
+  loginBtn.textContent = '验证中...';
+  loginBtn.disabled = true;
+
+  // 先从云端获取最新数据，再验证密码
+  fetch(API_BASE + '/api/members', {headers:{'Accept':'application/json'}})
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      loginBtn.textContent = origText;
+      loginBtn.disabled = false;
+      if(Array.isArray(data) && data.length > 0){
+        members = data;
+        members.forEach(function(m){ if(!m.passwordHash) m.passwordHash = DEFAULT_PASSWORD_HASH; });
+        saveDataLocal();
+      } else {
+        loadFromLocal();
+      }
+      doLogin(user, passHash);
+    })
+    .catch(function(){
+      loginBtn.textContent = origText;
+      loginBtn.disabled = false;
+      loadFromLocal();
+      doLogin(user, passHash);
+    });
+}
+
+function doLogin(user, passHash){
   let profileData = null;
 
   const found = members.find(m => m.name === user);
@@ -972,8 +999,7 @@ function handleLogin(){
   // 初始化 dock 第一个 tab 为 active
   setActiveIndex(0);
 
-  // 从云端同步最新数据（异步）
-  syncFromCloud();
+  // 数据已在登录时从云端同步，无需再次同步
 
   // 检测密码是否为默认密码123456，弹窗提示修改
   if(found.passwordHash === DEFAULT_PASSWORD_HASH){

@@ -103,9 +103,67 @@ def static_files(path):
     return send_from_directory(os.path.dirname(os.path.abspath(__file__)), path)
 
 # ===== API: MEMBERS =====
+def _sync_members_to_supabase(members):
+    """将成员列表同步到 Supabase user_account 表"""
+    if not _use_supabase:
+        return
+    # 获取 Supabase 中现有用户
+    existing = _supabase_get('user_account', 'select=username')
+    existing_names = {u.get('username') for u in existing} if existing else set()
+    # upsert 每个成员
+    for m in members:
+        name = m.get('name', '')
+        if not name:
+            continue
+        pwd_hash = m.get('passwordHash', '')
+        if not pwd_hash:
+            # 默认密码 123456 的 SHA-256
+            pwd_hash = hashlib.sha256('123456'.encode('utf-8')).hexdigest()
+        user_data = {
+            'username': name,
+            'password_hash': pwd_hash,
+            'name': name,
+            'dept': m.get('dept', ''),
+            'position': m.get('position', ''),
+            'duty': m.get('duty', ''),
+            'join_date': m.get('joinDate', ''),
+            'leave_date': m.get('leaveDate', '')
+        }
+        if name in existing_names:
+            _supabase_patch('user_account', f"username=eq.{name}", user_data)
+        else:
+            _supabase_post('user_account', user_data)
+
+def _load_members_from_supabase():
+    """从 Supabase 加载成员列表"""
+    if not _use_supabase:
+        return None
+    users = _supabase_get('user_account', 'select=*')
+    if not users:
+        return []
+    result = []
+    for u in users:
+        result.append({
+            'id': len(result) + 1,
+            'name': u.get('name', ''),
+            'dept': u.get('dept', ''),
+            'position': u.get('position', ''),
+            'duty': u.get('duty', ''),
+            'joinDate': u.get('join_date', ''),
+            'leaveDate': u.get('leave_date', ''),
+            'passwordHash': u.get('password_hash', '')
+        })
+    return result
+
 @app.route('/api/members', methods=['GET'])
 def get_members():
     with _lock:
+        # 优先从 Supabase 加载
+        if _use_supabase:
+            data = _load_members_from_supabase()
+            if data is not None:
+                return jsonify(data)
+        # 回退 SQLite
         if _use_pg:
             s = _Session()
             try:
@@ -125,6 +183,9 @@ def save_members():
     if not isinstance(members, list):
         return jsonify({"error": "expected array"}), 400
     with _lock:
+        # 同步到 Supabase
+        _sync_members_to_supabase(members)
+        # 同时存 SQLite（作为本地缓存）
         if _use_pg:
             s = _Session()
             try:
@@ -147,6 +208,7 @@ def save_members():
 def update_member(mid):
     data = request.get_json(force=True)
     with _lock:
+        # 先从 SQLite 获取当前成员数据
         if _use_pg:
             s = _Session()
             try:
@@ -170,23 +232,49 @@ def update_member(mid):
             conn.execute("UPDATE members SET data=? WHERE id=?", (json.dumps(existing, ensure_ascii=False), mid))
             conn.commit()
             conn.close()
+        # 同步到 Supabase
+        if _use_supabase and existing.get('name'):
+            supa_data = {}
+            for k in ['dept', 'position', 'duty', 'name']:
+                if k in data:
+                    supa_data[k] = data[k]
+            if 'joinDate' in data:
+                supa_data['join_date'] = data['joinDate']
+            if 'leaveDate' in data:
+                supa_data['leave_date'] = data['leaveDate']
+            if 'passwordHash' in data:
+                supa_data['password_hash'] = data['passwordHash']
+            if supa_data:
+                old_name = existing.get('name', '')
+                _supabase_patch('user_account', f"username=eq.{old_name}", supa_data)
     return jsonify({"ok": True})
 
 @app.route('/api/member/<int:mid>', methods=['DELETE'])
 def delete_member(mid):
     with _lock:
+        # 先获取成员名字（用于删除 Supabase 记录）
+        member_name = None
         if _use_pg:
             s = _Session()
             try:
+                row = s.query(_Member).filter_by(id=mid).first()
+                if row:
+                    member_name = json.loads(row.data).get('name')
                 s.query(_Member).filter_by(id=mid).delete()
                 s.commit()
             finally:
                 s.close()
         else:
             conn = _sqlite_db()
+            row = conn.execute("SELECT data FROM members WHERE id=?", (mid,)).fetchone()
+            if row:
+                member_name = json.loads(row['data']).get('name')
             conn.execute("DELETE FROM members WHERE id=?", (mid,))
             conn.commit()
             conn.close()
+        # 同步删除 Supabase 记录
+        if _use_supabase and member_name:
+            _supabase_delete('user_account', f"username=eq.{member_name}")
     return jsonify({"ok": True})
 
 # ===== API: MESSAGES =====

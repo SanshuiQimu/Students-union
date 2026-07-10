@@ -38,22 +38,10 @@
       display:block;
       position:fixed;top:0;left:0;width:100%;height:60px;z-index:9999;
       pointer-events:none;
+      opacity:0;
+      transition:opacity .3s ease;
       backdrop-filter:blur(12px) saturate(1.5);
       -webkit-backdrop-filter:blur(12px) saturate(1.5);
-      background:linear-gradient(to bottom,
-        rgba(10,10,26,0.7) 0px,
-        rgba(10,10,26,0.5) 15px,
-        rgba(10,10,26,0.3) 30px,
-        rgba(10,10,26,0.15) 45px,
-        rgba(10,10,26,0) 60px);
-    }
-    html.light-mode #topBlurBar{
-      background:linear-gradient(to bottom,
-        rgba(255,255,255,0.7) 0px,
-        rgba(255,255,255,0.5) 15px,
-        rgba(255,255,255,0.3) 30px,
-        rgba(255,255,255,0.15) 45px,
-        rgba(255,255,255,0) 60px);
     }
 
     body{padding-top:50px !important}
@@ -2807,6 +2795,67 @@ document.addEventListener('visibilitychange', function() {
 
 // 初始化主题
 applyAppTheme();
+
+// ===== 顶部模糊遮罩：滚动时显示 + 100段无极渐变 =====
+(function(){
+  var bar = document.getElementById('topBlurBar');
+  if(!bar) return;
+
+  // 生成100段线性渐变，从顶部不透明到底部完全透明
+  function buildGradient(){
+    var isLight = document.documentElement.classList.contains('light-mode');
+    var r = isLight ? 255 : 10;
+    var g = isLight ? 255 : 10;
+    var b = isLight ? 255 : 26;
+    var stops = [];
+    for(var i = 0; i <= 100; i++){
+      var alpha = 0.7 * (1 - i / 100);
+      stops.push('rgba(' + r + ',' + g + ',' + b + ',' + alpha.toFixed(4) + ') ' + (i * 0.6).toFixed(1) + 'px');
+    }
+    bar.style.background = 'linear-gradient(to bottom,' + stops.join(',') + ')';
+  }
+
+  buildGradient();
+
+  // 主题切换时重新生成渐变
+  var origApply = window.applyAppTheme;
+  if(typeof origApply === 'function'){
+    window.applyAppTheme = function(){ origApply(); buildGradient(); };
+  }
+
+  // 滚动时显示/隐藏遮罩
+  function updateBarVisibility(){
+    var scrolled = false;
+    // 检查主页面滚动
+    if(window.scrollY > 5) scrolled = true;
+    // 检查全屏面板内的滚动
+    var panels = document.querySelectorAll('.fullpage-slide.slide-in-left');
+    for(var i = 0; i < panels.length; i++){
+      if(panels[i].scrollTop > 5){ scrolled = true; break; }
+    }
+    // 检查 mainPage 内部滚动容器
+    var mainPage = document.getElementById('mainPage');
+    if(mainPage){
+      var scrollContainers = mainPage.querySelectorAll('[style*="overflow"]');
+      for(var j = 0; j < scrollContainers.length; j++){
+        if(scrollContainers[j].scrollTop > 5){ scrolled = true; break; }
+      }
+    }
+    bar.style.opacity = scrolled ? '1' : '0';
+  }
+
+  window.addEventListener('scroll', updateBarVisibility, {passive: true});
+  window.addEventListener('touchmove', updateBarVisibility, {passive: true});
+
+  // 监听全屏面板滚动
+  var allPanels = document.querySelectorAll('.fullpage-slide');
+  allPanels.forEach(function(p){
+    p.addEventListener('scroll', updateBarVisibility, {passive: true});
+  });
+
+  // 初始检查
+  setTimeout(updateBarVisibility, 300);
+})();
 </script>
 </body>
 </html>

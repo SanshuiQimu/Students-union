@@ -98,41 +98,74 @@ init_db()
 def index():
     return send_from_directory(os.path.dirname(os.path.abspath(__file__)), 'index.html')
 
+@app.route('/api/diagnose')
+def diagnose():
+    """诊断端点：检查 Supabase 连接状态"""
+    result = {
+        'supabase_configured': _use_supabase,
+        'supabase_url': SUPABASE_URL if _use_supabase else '(未配置)',
+        'has_key': bool(SUPABASE_KEY),
+    }
+    if _use_supabase:
+        try:
+            users = _supabase_get('user_account', 'select=username&limit=1')
+            result['supabase_connected'] = True
+            result['user_count'] = len(_supabase_get('user_account', 'select=username'))
+        except Exception as e:
+            result['supabase_connected'] = False
+            result['error'] = str(e)
+    return jsonify(result)
+
 @app.route('/<path:path>')
 def static_files(path):
     return send_from_directory(os.path.dirname(os.path.abspath(__file__)), path)
 
 # ===== API: MEMBERS =====
 def _sync_members_to_supabase(members):
-    """将成员列表同步到 Supabase user_account 表"""
+    """将成员列表批量同步到 Supabase user_account 表"""
     if not _use_supabase:
-        return
-    # 获取 Supabase 中现有用户
-    existing = _supabase_get('user_account', 'select=username')
-    existing_names = {u.get('username') for u in existing} if existing else set()
-    # upsert 每个成员
-    for m in members:
-        name = m.get('name', '')
-        if not name:
-            continue
-        pwd_hash = m.get('passwordHash', '')
-        if not pwd_hash:
-            # 默认密码 123456 的 SHA-256
-            pwd_hash = hashlib.sha256('123456'.encode('utf-8')).hexdigest()
-        user_data = {
-            'username': name,
-            'password_hash': pwd_hash,
-            'name': name,
-            'dept': m.get('dept', ''),
-            'position': m.get('position', ''),
-            'duty': m.get('duty', ''),
-            'join_date': m.get('joinDate', ''),
-            'leave_date': m.get('leaveDate', '')
-        }
-        if name in existing_names:
+        return {'synced': False, 'reason': 'Supabase 未配置'}
+    try:
+        # 获取 Supabase 中现有用户名
+        existing = _supabase_get('user_account', 'select=username')
+        existing_names = {u.get('username') for u in existing} if existing else set()
+
+        to_insert = []
+        to_update = []
+        for m in members:
+            name = m.get('name', '')
+            if not name:
+                continue
+            pwd_hash = m.get('passwordHash', '')
+            if not pwd_hash:
+                pwd_hash = hashlib.sha256('123456'.encode('utf-8')).hexdigest()
+            user_data = {
+                'username': name,
+                'password_hash': pwd_hash,
+                'name': name,
+                'dept': m.get('dept', ''),
+                'position': m.get('position', ''),
+                'duty': m.get('duty', ''),
+                'join_date': m.get('joinDate', ''),
+                'leave_date': m.get('leaveDate', '')
+            }
+            if name in existing_names:
+                to_update.append((name, user_data))
+            else:
+                to_insert.append(user_data)
+
+        # 批量插入新用户
+        if to_insert:
+            _supabase_post('user_account', to_insert)
+
+        # 逐条更新已有用户（Supabase PATCH 不支持批量）
+        for name, user_data in to_update:
             _supabase_patch('user_account', f"username=eq.{name}", user_data)
-        else:
-            _supabase_post('user_account', user_data)
+
+        return {'synced': True, 'inserted': len(to_insert), 'updated': len(to_update)}
+    except Exception as e:
+        print(f"[Supabase] 同步失败: {e}")
+        return {'synced': False, 'reason': str(e)}
 
 def _load_members_from_supabase():
     """从 Supabase 加载成员列表"""
@@ -184,7 +217,7 @@ def save_members():
         return jsonify({"error": "expected array"}), 400
     with _lock:
         # 同步到 Supabase
-        _sync_members_to_supabase(members)
+        sync_result = _sync_members_to_supabase(members)
         # 同时存 SQLite（作为本地缓存）
         if _use_pg:
             s = _Session()
@@ -202,7 +235,7 @@ def save_members():
                 conn.execute("INSERT INTO members (data) VALUES (?)", (json.dumps(m, ensure_ascii=False),))
             conn.commit()
             conn.close()
-    return jsonify({"ok": True})
+    return jsonify({"ok": True, "sync": sync_result})
 
 @app.route('/api/member/<int:mid>', methods=['PUT'])
 def update_member(mid):

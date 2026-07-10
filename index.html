@@ -907,7 +907,13 @@ function saveData(){
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify(members)
-  }).catch(function(){});
+  }).then(function(r){ return r.json(); })
+    .then(function(data){
+      if(data.sync && data.sync.synced === false){
+        console.warn('云端同步失败:', data.sync.reason);
+      }
+    })
+    .catch(function(e){ console.warn('保存到云端失败:', e); });
 }
 var _dataReady = false;
 function afterLoadData(){

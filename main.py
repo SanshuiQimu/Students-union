@@ -65,7 +65,7 @@ def init_db():
             try:
                 if not s.query(_Meta).filter_by(key='initialized').first():
                     defaults = [
-                        {"id":1,"name":"林可翔","dept":"秘书处","position":"部长","duty":"统筹协调各部门工作、会议组织","joinDate":"2026-04-01","leaveDate":"","passwordHash":"d5a5d426cd7786950e59b8a714186ca384da908a40c7b7bfdccfbbb64b668df7"}
+                        {"id":1,"name":"林可翔","dept":"秘书处","position":"处长","duty":"统筹协调各部门工作、会议组织","joinDate":"2026-04-01","leaveDate":"","passwordHash":"d5a5d426cd7786950e59b8a714186ca384da908a40c7b7bfdccfbbb64b668df7"}
                     ]
                     for m in defaults:
                         s.add(_Member(data=json.dumps(m, ensure_ascii=False)))
@@ -80,7 +80,7 @@ def init_db():
             conn.execute('''CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT)''')
             if not conn.execute("SELECT value FROM meta WHERE key='initialized'").fetchone():
                 defaults = [
-                    {"id":1,"name":"林可翔","dept":"秘书处","position":"部长","duty":"统筹协调各部门工作、会议组织","joinDate":"2026-04-01","leaveDate":"","passwordHash":"d5a5d426cd7786950e59b8a714186ca384da908a40c7b7bfdccfbbb64b668df7"}
+                    {"id":1,"name":"林可翔","dept":"秘书处","position":"处长","duty":"统筹协调各部门工作、会议组织","joinDate":"2026-04-01","leaveDate":"","passwordHash":"d5a5d426cd7786950e59b8a714186ca384da908a40c7b7bfdccfbbb64b668df7"}
                 ]
                 for m in defaults:
                     conn.execute("INSERT INTO members (data) VALUES (?)", (json.dumps(m, ensure_ascii=False),))

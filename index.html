@@ -145,6 +145,7 @@
   .dept-生活部{background:rgba(72,187,187,0.12);color:#4fd1c5}
   .dept-社联会{background:rgba(159,122,234,0.12);color:#b794f4}
   .position-tag{font-size:12px;font-weight:500;padding:4px 10px;border-radius:6px}
+  .position-会长{background:rgba(237,45,45,0.15);color:#ef4444;border:1px solid rgba(237,45,45,0.25)}
   .position-部长{background:rgba(226,176,74,0.15);color:var(--gold);border:1px solid rgba(226,176,74,0.2)}
   .position-副部长{background:rgba(159,122,234,0.15);color:#b794f4;border:1px solid rgba(159,122,234,0.2)}
   .position-干事{background:rgba(128,128,128,0.06);color:var(--text-secondary);border:1px solid var(--border)}
@@ -730,7 +731,7 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
       </div>
       <div class="form-row">
         <div class="form-group"><label>职位</label>
-          <select id="fPosition"><option value="">选择职位</option><option>部长</option><option>副部长</option><option>干事</option></select>
+          <select id="fPosition"><option value="">选择职位</option><option>会长</option><option>部长</option><option>副部长</option><option>干事</option></select>
         </div>
         <div class="form-group"><label>入职时间</label><input type="date" id="fJoinDate"></div>
       </div>
@@ -981,8 +982,8 @@ function doLogin(user, passHash){
   }
   profileData = found;
 
-  // 角色权限验证：部长/副部长只能以"部长"身份登录，普通成员只能以"成员"身份登录
-  const isMinister = found.position === '部长' || found.position === '副部长';
+  // 角色权限验证：会长/部长/副部长只能以"部长"身份登录，普通成员只能以"成员"身份登录
+  const isMinister = found.position === '会长' || found.position === '部长' || found.position === '副部长';
   if(isMinister && selectedRole === '成员'){
     const err = document.getElementById('loginError');
     err.textContent = '您的身份为' + found.position + '，请选择"部长"身份登录';
@@ -1001,7 +1002,8 @@ function doLogin(user, passHash){
   if(selectedRole === '成员'){
     currentUser = {name:found.name, role:'成员', dept:found.dept, position:found.position, isAdmin:false, isDeptAdmin:false, isMember:true};
   } else {
-    const isSecretaryAdmin = found.dept === '秘书处' && found.position === '部长';
+    const isPresident = found.position === '会长';
+    const isSecretaryAdmin = isPresident || (found.dept === '秘书处' && found.position === '部长');
     const isDeptMinister = found.position === '部长' || found.position === '副部长';
     currentUser = {
       name: found.name, role: found.position, dept: found.dept, position: found.position,

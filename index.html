@@ -563,6 +563,10 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="color:var(--text-secondary)"><polyline points="9 18 15 12 9 6"></polyline></svg>
       </div>
     </div>
+    <div id="broadcastSettingItem" class="settings-item" style="cursor:pointer;display:none" onclick="openBroadcast()">
+      <span>群发通知</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="color:var(--text-secondary)"><polyline points="9 18 15 12 9 6"></polyline></svg>
+    </div>
     <div class="settings-item" style="cursor:pointer" onclick="openChangePwdFromSettings()">
       <span>修改密码</span>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="color:var(--text-secondary)"><polyline points="9 18 15 12 9 6"></polyline></svg>
@@ -616,22 +620,6 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
       <h2 style="font-size:18px;font-weight:600">消息通知</h2>
     </div>
 
-    <!-- 群发消息（仅部长及以上可见） -->
-    <div id="broadcastSection" style="display:none;margin-bottom:20px">
-      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:20px">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" style="color:var(--gold)">
-            <path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 11-5.8-1.6"/>
-          </svg>
-          <span style="font-size:15px;font-weight:600;color:var(--text)">群发通知</span>
-        </div>
-        <textarea id="broadcastText" placeholder="输入要发送给全体成员的通知内容，如：7月15日下午2点在会议室召开全体例会，请准时参加。" style="width:100%;min-height:100px;resize:vertical;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;font-family:inherit;box-sizing:border-box"></textarea>
-        <div style="display:flex;gap:10px;margin-top:12px">
-          <button onclick="sendBroadcast()" style="flex:1;padding:10px 16px;border-radius:10px;border:none;background:var(--gold);color:#000;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .3s">发送给全体成员</button>
-        </div>
-      </div>
-    </div>
-
     <div id="msgList">
       <div class="msg-empty">暂无消息</div>
     </div>
@@ -663,6 +651,31 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
       </div>
       <button class="btn btn-primary" onclick="submitBadgeApply()" style="width:100%;margin-top:8px;padding:14px;font-size:15px;font-weight:600">提交申请</button>
       <p id="badgeAppError" style="color:var(--danger);font-size:13px;display:none;margin-top:8px;text-align:center"></p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== BROADCAST PAGE ===== -->
+<div id="broadcastPage" class="fullpage-slide slide-out-left" style="position:fixed;inset:0;z-index:2000;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch">
+  <div style="max-width:600px;margin:0 auto;padding:20px 20px 100px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;padding-top:10px">
+      <button class="btn btn-secondary" onclick="closeBroadcast()" style="padding:8px 14px;font-size:13px">← 返回设置</button>
+      <h2 style="font-size:18px;font-weight:600">群发通知</h2>
+    </div>
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-top:8px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" style="color:var(--gold)">
+          <path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 11-5.8-1.6"/>
+        </svg>
+        <span style="font-size:15px;font-weight:600;color:var(--text)">发送通知给全体成员</span>
+      </div>
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;line-height:1.6">
+        输入通知内容，确认后将发送给所有在任成员。成员可在"消息通知"中查看。
+      </p>
+      <textarea id="broadcastText" placeholder="输入要发送给全体成员的通知内容，如：7月15日下午2点在会议室召开全体例会，请准时参加。" style="width:100%;min-height:120px;resize:vertical;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;font-family:inherit;box-sizing:border-box"></textarea>
+      <div style="display:flex;gap:10px;margin-top:14px">
+        <button onclick="sendBroadcast()" style="flex:1;padding:12px 16px;border-radius:10px;border:none;background:var(--gold);color:#000;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .3s">发送给全体成员</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1179,6 +1192,9 @@ function _setupLoginSession(found, isDefaultPwd){
   const exportBtn = document.getElementById('exportBtnWrap');
   if(exportBtn) exportBtn.style.display = showAdmin ? '' : 'none';
 
+  // 群发通知选项：仅部长及以上可见
+  document.getElementById('broadcastSettingItem').style.display = showAdmin ? 'flex' : 'none';
+
   if(currentUser.isDeptAdmin && !currentUser.isAdmin){
     currentFilter = currentUser.dept;
   } else {
@@ -1629,6 +1645,17 @@ function sendMsg(to, title, body, operatorName, operatorDept, type, applicantNam
   saveMessages(msgs);
 }
 
+function openBroadcast(){
+  var p = document.getElementById('broadcastPage');
+  p.classList.remove('slide-out-left');
+  p.classList.add('slide-in-left');
+}
+function closeBroadcast(){
+  var p = document.getElementById('broadcastPage');
+  p.classList.remove('slide-in-left');
+  p.classList.add('slide-out-left');
+}
+
 function sendBroadcast(){
   var text = document.getElementById('broadcastText').value.trim();
   if(!text){
@@ -1729,9 +1756,6 @@ var _msgPage = null;
 function getMsgPage(){ if(!_msgPage) _msgPage = document.getElementById('msgPage'); return _msgPage; }
 function openMessages(){
   var p = getMsgPage();
-  // 部长及以上显示群发功能
-  var canBroadcast = currentUser.isAdmin || currentUser.isDeptAdmin;
-  document.getElementById('broadcastSection').style.display = canBroadcast ? 'block' : 'none';
   renderMessages();
   markAllRead();
   setTimeout(updateMsgBadge, 100);

@@ -1398,6 +1398,8 @@ window.addEventListener('popstate', function(e){
 })();
 
 function handleLogout(){
+  stopMsgPolling();
+  _lastMsgCount = -1;
   document.getElementById('mainPage').style.display = 'none';
   document.getElementById('bottomDockNav').style.display = 'none';
   document.getElementById('loginPage').style.display = 'flex';
@@ -1452,6 +1454,66 @@ function initMain(){
   updateMsgBadge();
   // 同步云端消息
   syncMessagesFromCloud();
+  // 启动消息轮询（仅 Android App）
+  startMsgPolling();
+}
+
+// ===== 消息轮询 + 原生通知（仅 Android App）=====
+var _lastMsgCount = -1;
+var _msgPollTimer = null;
+function startMsgPolling(){
+  if(!document.documentElement.classList.contains('android-app')) return;
+  if(_msgPollTimer) return;
+  // 立即检查一次
+  checkNewMessages();
+  // 每30秒轮询一次
+  _msgPollTimer = setInterval(checkNewMessages, 30000);
+}
+
+function stopMsgPolling(){
+  if(_msgPollTimer){ clearInterval(_msgPollTimer); _msgPollTimer = null; }
+}
+
+function checkNewMessages(){
+  if(!currentUser.name) return;
+  fetch(API_BASE + '/api/messages', {headers:{'Accept':'application/json'}})
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if(!Array.isArray(data)) return;
+      // 同步到本地
+      localStorage.setItem(MSG_KEY, JSON.stringify(data));
+      // 找到发给当前用户的未读消息
+      var myMsgs = data.filter(function(m){ return m.to === currentUser.name; });
+      var unreadCount = myMsgs.filter(function(m){ return !m.read; }).length;
+
+      if(_lastMsgCount < 0){
+        // 首次：记录当前未读数，不弹通知
+        _lastMsgCount = unreadCount;
+        updateMsgBadge();
+        return;
+      }
+
+      if(unreadCount > _lastMsgCount){
+        // 有新消息，弹通知
+        var newMsgs = myMsgs.slice(_lastMsgCount > 0 ? -(_lastMsgCount) : 0);
+        // 实际找最新的几条
+        var recentMsgs = myMsgs.slice(-3);
+        var notifyCount = unreadCount - _lastMsgCount;
+
+        // 调用原生通知
+        if(window.AndroidNative && window.AndroidNative.showNotification){
+          if(notifyCount === 1 && recentMsgs.length > 0){
+            var m = recentMsgs[recentMsgs.length - 1];
+            window.AndroidNative.showNotification(m.title || '新消息', m.body || '');
+          } else {
+            window.AndroidNative.showNotification('收到 ' + notifyCount + ' 条新消息', '点击查看详情');
+          }
+        }
+      }
+      _lastMsgCount = unreadCount;
+      updateMsgBadge();
+    })
+    .catch(function(){});
 }
 
 function updateStats(){

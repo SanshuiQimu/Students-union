@@ -713,6 +713,16 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
   </div>
 </nav>
 
+<!-- 底部版权信息 -->
+<div id="footerCopyright" style="position:fixed;bottom:4px;left:0;width:100%;text-align:center;z-index:999;pointer-events:none;display:none">
+  <div style="font-size:11px;color:var(--text-secondary);opacity:0.5;line-height:1.6">
+    数据安全由三水柒木工作室提供担保<br>
+    © 2023-2026 三水柒木工作室<br>
+    网站部署由 Railway 提供支持<br>
+    © 2026 Railway Corp. All rights reserved.
+  </div>
+</div>
+
 <!-- ===== ADD/EDIT MODAL ===== -->
 <div class="modal-overlay" id="memberModal">
   <div class="modal">
@@ -1074,6 +1084,8 @@ function doLogin(user, passHash){
   initMain();
   // 初始化 dock 第一个 tab 为 active
   setActiveIndex(0);
+  // 显示底部版权
+  document.getElementById('footerCopyright').style.display = 'block';
 
   // 数据已在登录时从云端同步，无需再次同步
 
@@ -1095,6 +1107,8 @@ function handleLogout(){
   switchTab(0);
   // 重置 Dock 滑块位置到第一个 tab
   setActiveIndex(0);
+  // 隐藏底部版权
+  document.getElementById('footerCopyright').style.display = 'none';
 }
 
 document.getElementById('loginPass').addEventListener('keydown', e => { if(e.key === 'Enter') handleLogin(); });

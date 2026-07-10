@@ -36,16 +36,15 @@
   @media (max-width: 768px){
     #topBlurBar{
       display:block;
-      position:fixed;top:0;left:0;width:100%;height:30px;z-index:9999;
+      position:fixed;top:0;left:0;width:100%;height:50px;z-index:9999;
       pointer-events:none;
       backdrop-filter:blur(20px) saturate(1.8);
       -webkit-backdrop-filter:blur(20px) saturate(1.8);
-      background:rgba(10,10,26,0.6);
+      background:linear-gradient(to bottom,rgba(10,10,26,0.5) 30px,rgba(10,10,26,0) 50px);
     }
-    /* 深色模式下遮罩偏暗 */
-    #topBlurBar{background:rgba(10,10,26,0.5)}
-    /* 浅色模式下遮罩偏亮 */
-    html.light-mode #topBlurBar{background:rgba(255,255,255,0.5)}
+    html.light-mode #topBlurBar{
+      background:linear-gradient(to bottom,rgba(255,255,255,0.5) 30px,rgba(255,255,255,0) 50px);
+    }
 
     body{padding-top:50px !important}
     #loginPage{padding-top:70px !important;align-items:flex-start !important}

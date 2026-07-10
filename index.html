@@ -977,7 +977,7 @@ function sha256(str){
 }
 
 
-function handleLogin(){
+async function handleLogin(){
   const user = document.getElementById('loginUser').value.trim();
   const pass = document.getElementById('loginPass').value;
   if(!user || !pass){
@@ -987,20 +987,63 @@ function handleLogin(){
     return;
   }
 
-  const passHash = sha256(pass);
-
-  // 显示加载状态
   const loginBtn = document.querySelector('.login-btn');
   const origText = loginBtn.textContent;
   loginBtn.textContent = '验证中...';
   loginBtn.disabled = true;
 
-  // 先从云端获取最新数据，再验证密码
+  // 尝试 Supabase 认证
+  try {
+    const resp = await fetch(API_BASE + '/api/auth/login', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({username: user, password: pass})
+    });
+
+    if (resp.status === 503) {
+      // Supabase 未配置，回退本地认证
+      loginBtn.textContent = origText;
+      loginBtn.disabled = false;
+      handleLoginLocal(user, pass);
+      return;
+    }
+
+    if (resp.ok) {
+      const userData = await resp.json();
+      loginBtn.textContent = origText;
+      loginBtn.disabled = false;
+      // 同时获取成员数据用于管理
+      try {
+        const mr = await fetch(API_BASE + '/api/members', {headers:{'Accept':'application/json'}});
+        const md = await mr.json();
+        if (Array.isArray(md) && md.length > 0) { members = md; saveDataLocal(); }
+        else loadFromLocal();
+      } catch(e) { loadFromLocal(); }
+
+      doLoginSupabase(userData, pass);
+      return;
+    }
+
+    // 登录失败
+    loginBtn.textContent = origText;
+    loginBtn.disabled = false;
+    const err = document.getElementById('loginError');
+    const errData = await resp.json().catch(() => ({}));
+    err.textContent = errData.error || '用户名或密码错误';
+    err.style.display = 'block';
+    setTimeout(() => { err.style.display = 'none'; err.textContent = '用户名或密码错误，或不在系统名单中'; }, 3000);
+  } catch(e) {
+    loginBtn.textContent = origText;
+    loginBtn.disabled = false;
+    handleLoginLocal(user, pass);
+  }
+}
+
+function handleLoginLocal(user, pass){
+  const passHash = sha256(pass);
   fetch(API_BASE + '/api/members', {headers:{'Accept':'application/json'}})
     .then(function(r){ return r.json(); })
     .then(function(data){
-      loginBtn.textContent = origText;
-      loginBtn.disabled = false;
       if(Array.isArray(data) && data.length > 0){
         members = data;
         members.forEach(function(m){ if(!m.passwordHash) m.passwordHash = DEFAULT_PASSWORD_HASH; });
@@ -1011,16 +1054,24 @@ function handleLogin(){
       doLogin(user, passHash);
     })
     .catch(function(){
-      loginBtn.textContent = origText;
-      loginBtn.disabled = false;
       loadFromLocal();
       doLogin(user, passHash);
     });
 }
 
-function doLogin(user, passHash){
-  let profileData = null;
+function doLoginSupabase(userData, rawPass){
+  const found = {
+    name: userData.name,
+    dept: userData.dept || '',
+    position: userData.position || '',
+    duty: userData.duty || '',
+    joinDate: userData.join_date || userData.joinDate || '',
+    leaveDate: userData.leave_date || userData.leaveDate || ''
+  };
+  _setupLoginSession(found, rawPass === '123456');
+}
 
+function doLogin(user, passHash){
   const found = members.find(m => m.name === user);
   if(!found){
     const err = document.getElementById('loginError');
@@ -1028,16 +1079,17 @@ function doLogin(user, passHash){
     setTimeout(() => err.style.display = 'none', 3000);
     return;
   }
-  // 验证密码哈希
   if(found.passwordHash && found.passwordHash !== passHash){
     const err = document.getElementById('loginError');
     err.style.display = 'block';
     setTimeout(() => err.style.display = 'none', 3000);
     return;
   }
-  profileData = found;
+  _setupLoginSession(found, found.passwordHash === DEFAULT_PASSWORD_HASH);
+}
 
-  // 角色权限验证：会长/处长/部长/副部长只能以"部长"身份登录，普通成员只能以"成员"身份登录
+function _setupLoginSession(found, isDefaultPwd){
+  // 角色权限验证
   const isMinister = found.position === '会长' || found.position === '处长' || found.position === '部长' || found.position === '副部长';
   if(isMinister && selectedRole === '成员'){
     const err = document.getElementById('loginError');
@@ -1070,55 +1122,34 @@ function doLogin(user, passHash){
 
   document.getElementById('loginPage').style.display = 'none';
   document.getElementById('mainPage').style.display = 'block';
-
-  // Show Dock after login
   document.getElementById('bottomDockNav').style.display = '';
-
   document.getElementById('topbarName').textContent = currentUser.name;
   document.getElementById('topbarRole').textContent = currentUser.isAdmin ? '管理员' : currentUser.role;
   document.getElementById('avatarLetter').textContent = currentUser.name[0];
-
-  // Fill profile card
   document.getElementById('profileAvatar').textContent = currentUser.name[0];
   document.getElementById('profileName').textContent = currentUser.name;
   document.getElementById('profileRole').textContent = currentUser.isAdmin ? '管理员' : currentUser.role;
-  if(profileData){
-    document.getElementById('profileDept').textContent = profileData.dept || '--';
-    document.getElementById('profilePosition').textContent = profileData.position || '--';
-    document.getElementById('profileDuty').textContent = profileData.duty || '--';
-    document.getElementById('profileJoin').textContent = profileData.joinDate || '--';
-    document.getElementById('profileLeave').textContent = profileData.leaveDate || '在任';
-  } else {
-    document.getElementById('profileDept').textContent = '--';
-    document.getElementById('profilePosition').textContent = '--';
-    document.getElementById('profileDuty').textContent = '--';
-    document.getElementById('profileJoin').textContent = '--';
-    document.getElementById('profileLeave').textContent = '--';
-  }
+  document.getElementById('profileDept').textContent = found.dept || '--';
+  document.getElementById('profilePosition').textContent = found.position || '--';
+  document.getElementById('profileDuty').textContent = found.duty || '--';
+  document.getElementById('profileJoin').textContent = found.joinDate || '--';
+  document.getElementById('profileLeave').textContent = found.leaveDate || '在任';
 
-  // Update dock tab label to show user's department
   const deptLabel = currentUser.dept || '秘书处';
   document.getElementById('dockTabLabel0').textContent = deptLabel;
 
-  // Permission-based UI
   const showAdmin = currentUser.isAdmin || currentUser.isDeptAdmin;
   document.getElementById('adminStats').style.display = showAdmin ? 'grid' : 'none';
   document.getElementById('adminActions').style.display = showAdmin ? 'flex' : 'none';
   document.getElementById('adminToolbar').style.display = showAdmin ? 'flex' : 'none';
   document.getElementById('memberSearchBar').style.display = showAdmin ? 'none' : 'flex';
 
-  // Import button
   const importBtn = document.getElementById('importBtnWrap');
   if(importBtn) importBtn.style.display = showAdmin ? '' : 'none';
-
-  // Add button
   document.getElementById('addBtn').style.display = showAdmin ? '' : 'none';
-
-  // Export button
   const exportBtn = document.getElementById('exportBtnWrap');
   if(exportBtn) exportBtn.style.display = showAdmin ? '' : 'none';
 
-  // Dept admin: default filter to own dept
   if(currentUser.isDeptAdmin && !currentUser.isAdmin){
     currentFilter = currentUser.dept;
   } else {
@@ -1126,13 +1157,9 @@ function doLogin(user, passHash){
   }
 
   initMain();
-  // 硬重置 dock 滑块到第一个 tab（无动画，避免残留上次位置）
   resetDockSlider(0);
 
-  // 数据已在登录时从云端同步，无需再次同步
-
-  // 检测密码是否为默认密码123456，弹窗提示修改
-  if(found.passwordHash === DEFAULT_PASSWORD_HASH){
+  if(isDefaultPwd){
     document.getElementById('changePwdHint').style.display = 'block';
     document.getElementById('changePwdModal').classList.add('show');
   }

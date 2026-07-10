@@ -228,25 +228,31 @@ def save_messages():
     return jsonify({"ok": True})
 
 # ===== SUPABASE AUTH =====
+import hashlib, secrets, urllib.request, urllib.error
+
 SUPABASE_URL = os.environ.get('SUPABASE_URL', '').rstrip('/')
 SUPABASE_KEY = os.environ.get('SUPABASE_SERVICE_KEY', '')
 _use_supabase = bool(SUPABASE_URL and SUPABASE_KEY)
 
 if _use_supabase:
-    try:
-        import bcrypt as _bcrypt
-        import requests as _requests
-        print(f"[Auth] Supabase 认证已启用: {SUPABASE_URL}")
-    except ImportError as e:
-        print(f"[Auth] 依赖未安装，Supabase 认证不可用: {e}")
-        _use_supabase = False
+    print(f"[Auth] Supabase 认证已启用: {SUPABASE_URL}")
 
+# PBKDF2 密码哈希（Python 内置，无需外部依赖）
 def _hash_password(password):
-    return _bcrypt.hashpw(password.encode('utf-8'), _bcrypt.gensalt()).decode('utf-8')
+    salt = secrets.token_hex(16)
+    dk = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt.encode('utf-8'), 100000)
+    return f"pbkdf2${salt}${dk.hex()}"
 
-def _verify_password(password, hashed):
+def _verify_password(password, stored):
     try:
-        return _bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+        if stored.startswith('pbkdf2$'):
+            parts = stored.split('$')
+            salt = parts[1]
+            expected = parts[2]
+            dk = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt.encode('utf-8'), 100000)
+            return secrets.compare_digest(dk.hex(), expected)
+        # 兼容旧 SHA-256 哈希
+        return hashlib.sha256(password.encode('utf-8')).hexdigest() == stored
     except Exception:
         return False
 
@@ -258,36 +264,39 @@ def _supabase_headers():
         'Prefer': 'return=representation'
     }
 
+def _supabase_request(method, path, body=None):
+    url = f"{SUPABASE_URL}/rest/v1/{path}"
+    headers = _supabase_headers()
+    data = json.dumps(body).encode('utf-8') if body else None
+    req = urllib.request.Request(url, data=data, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            raw = resp.read().decode('utf-8')
+            return resp.status, json.loads(raw) if raw else None
+    except urllib.error.HTTPError as e:
+        raw = e.read().decode('utf-8') if e.fp else ''
+        print(f"[Supabase] {method} {path} 失败: {e.code} {raw}")
+        return e.code, None
+    except Exception as e:
+        print(f"[Supabase] {method} {path} 异常: {e}")
+        return 0, None
+
 def _supabase_get(table, filter_str=''):
-    url = f"{SUPABASE_URL}/rest/v1/{table}"
-    if filter_str:
-        url += f"?{filter_str}"
-    resp = _requests.get(url, headers=_supabase_headers(), timeout=10)
-    if resp.status_code == 200:
-        return resp.json()
-    print(f"[Supabase] GET {table} 失败: {resp.status_code} {resp.text}")
-    return []
+    path = table + (f"?{filter_str}" if filter_str else "")
+    status, data = _supabase_request('GET', path)
+    return data if (status == 200 and isinstance(data, list)) else []
 
 def _supabase_post(table, data):
-    url = f"{SUPABASE_URL}/rest/v1/{table}"
-    resp = _requests.post(url, headers=_supabase_headers(), json=data, timeout=10)
-    if resp.status_code in (200, 201):
-        return resp.json()
-    print(f"[Supabase] POST {table} 失败: {resp.status_code} {resp.text}")
-    return None
+    status, result = _supabase_request('POST', table, data)
+    return result if status in (200, 201) else None
 
 def _supabase_patch(table, filter_str, data):
-    url = f"{SUPABASE_URL}/rest/v1/{table}?{filter_str}"
-    resp = _requests.patch(url, headers=_supabase_headers(), json=data, timeout=10)
-    if resp.status_code == 200:
-        return resp.json()
-    print(f"[Supabase] PATCH {table} 失败: {resp.status_code} {resp.text}")
-    return None
+    status, result = _supabase_request('PATCH', f"{table}?{filter_str}", data)
+    return result if status == 200 else None
 
 def _supabase_delete(table, filter_str):
-    url = f"{SUPABASE_URL}/rest/v1/{table}?{filter_str}"
-    resp = _requests.delete(url, headers=_supabase_headers(), timeout=10)
-    return resp.status_code in (200, 204)
+    status, _ = _supabase_request('DELETE', f"{table}?{filter_str}")
+    return status in (200, 204)
 
 @app.route('/api/auth/status')
 def auth_status():

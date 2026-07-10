@@ -43,7 +43,14 @@ if DATABASE_URL:
         print(f"[DB] PostgreSQL 连接失败，回退 SQLite: {e}")
 
 if not _use_pg:
-    DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data.db')
+    # 优先使用持久化卷路径（Railway Volume 挂载点 /data）
+    _vol = os.environ.get('RAILWAY_VOLUME_MOUNT_PATH', '')
+    if _vol and os.path.isdir(_vol):
+        DB_PATH = os.path.join(_vol, 'data.db')
+    elif os.path.isdir('/data'):
+        DB_PATH = '/data/data.db'
+    else:
+        DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data.db')
     print(f"[DB] 使用 SQLite: {DB_PATH}")
 
 def _sqlite_db():

@@ -31,8 +31,22 @@
 
   body{font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;transition:background .4s ease,color .4s ease}
 
-  /* 移动端整体下移 50px */
+  /* 顶部高斯模糊遮罩（移动端） */
+  #topBlurBar{display:none}
   @media (max-width: 768px){
+    #topBlurBar{
+      display:block;
+      position:fixed;top:0;left:0;width:100%;height:30px;z-index:9999;
+      pointer-events:none;
+      backdrop-filter:blur(20px) saturate(1.8);
+      -webkit-backdrop-filter:blur(20px) saturate(1.8);
+      background:rgba(10,10,26,0.6);
+    }
+    /* 深色模式下遮罩偏暗 */
+    #topBlurBar{background:rgba(10,10,26,0.5)}
+    /* 浅色模式下遮罩偏亮 */
+    html.light-mode #topBlurBar{background:rgba(255,255,255,0.5)}
+
     body{padding-top:50px !important}
     #loginPage{padding-top:70px !important;align-items:flex-start !important}
     .fullpage-slide{top:50px !important;height:calc(100% - 50px) !important}
@@ -351,6 +365,7 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
 </style>
 </head>
 <body>
+<div id="topBlurBar"></div>
 <div class="bg-animation"><div class="circle"></div><div class="circle"></div><div class="circle"></div></div>
 
 <!-- Toast -->
@@ -2674,6 +2689,19 @@ document.querySelectorAll(".dock-items-wrap .dock-item").forEach((item, i) => {
 let currentAppTheme = localStorage.getItem('app-theme') || 'dark';
 let autoThemeMode = localStorage.getItem('auto-theme') === '1';
 
+// 检测系统主题（优先读 WebView 注入的变量，回退 matchMedia）
+function detectSystemTheme() {
+  // WebView 通过 JS 注入的系统主题
+  if (typeof window._nativeSystemTheme === 'string') {
+    return window._nativeSystemTheme;
+  }
+  // 浏览器环境用 matchMedia
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+    return 'light';
+  }
+  return 'dark';
+}
+
 function setTheme(theme) {
   if (autoThemeMode) return; // 自动模式下不响应手动选择
   currentAppTheme = theme;
@@ -2684,10 +2712,7 @@ function setTheme(theme) {
 function applyAppTheme() {
   // 自动模式下跟随系统
   if (autoThemeMode) {
-    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
-    if (prefersDark) {
-      currentAppTheme = prefersDark.matches ? 'dark' : 'light';
-    }
+    currentAppTheme = detectSystemTheme();
   }
   const html = document.documentElement;
   html.classList.remove('light-mode');
@@ -2717,6 +2742,15 @@ function toggleAutoThemeMode() {
   applyAppTheme();
 }
 
+// WebView 调用：系统主题变化时注入新主题
+window._onNativeThemeChange = function(theme) {
+  window._nativeSystemTheme = theme;
+  if (autoThemeMode) {
+    currentAppTheme = theme;
+    applyAppTheme();
+  }
+};
+
 function toggleLiquidGlassEffect() {
   const enabled = document.getElementById('toggleLiquidGlass').checked;
   const slider = document.getElementById('frosted-slider');
@@ -2735,12 +2769,12 @@ function toggleCompactMode() {
   document.body.style.fontSize = compact ? '13px' : '';
 }
 
-// 监听系统主题变化（兼容 WebView）
+// matchMedia 监听系统主题变化（浏览器环境）
 if (window.matchMedia) {
-  var mql = window.matchMedia('(prefers-color-scheme: dark)');
+  var mql = window.matchMedia('(prefers-color-scheme: light)');
   var themeListener = function(e) {
-    if (autoThemeMode) {
-      currentAppTheme = e.matches ? 'dark' : 'light';
+    if (autoThemeMode && typeof window._nativeSystemTheme === 'undefined') {
+      currentAppTheme = e.matches ? 'light' : 'dark';
       applyAppTheme();
     }
   };
@@ -2751,16 +2785,13 @@ if (window.matchMedia) {
   }
 }
 
-// 页面从后台切回前台时重新检测主题（移动端 WebView 兼容）
+// 页面从后台切回前台时重新检测主题
 document.addEventListener('visibilitychange', function() {
   if (!document.hidden && autoThemeMode) {
-    var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
-    if (prefersDark) {
-      var newTheme = prefersDark.matches ? 'dark' : 'light';
-      if (newTheme !== currentAppTheme) {
-        currentAppTheme = newTheme;
-        applyAppTheme();
-      }
+    var newTheme = detectSystemTheme();
+    if (newTheme !== currentAppTheme) {
+      currentAppTheme = newTheme;
+      applyAppTheme();
     }
   }
 });

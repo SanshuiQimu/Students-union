@@ -1093,6 +1093,8 @@ function handleLogout(){
   // Reset tab
   currentTab = 0;
   switchTab(0);
+  // 重置 Dock 滑块位置到第一个 tab
+  setActiveIndex(0);
 }
 
 document.getElementById('loginPass').addEventListener('keydown', e => { if(e.key === 'Enter') handleLogin(); });
@@ -2027,6 +2029,11 @@ function setExpanding(val) {
 
 function setActiveIndex(idx) {
   currentActiveIndex = idx;
+  // 立即同步滑块位置，避免残留上次退出的位置
+  targetX = TARGET_POSITIONS[idx];
+  currentX = TARGET_POSITIONS[idx];
+  lastX = TARGET_POSITIONS[idx];
+  slider.style.left = `${currentX}px`;
   switchTab(idx);
 }
 

@@ -376,8 +376,9 @@ def _verify_password(password, stored):
             expected = parts[2]
             dk = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt.encode('utf-8'), 100000)
             return secrets.compare_digest(dk.hex(), expected)
-        # 兼容旧 SHA-256 哈希
-        return hashlib.sha256(password.encode('utf-8')).hexdigest() == stored
+        # 兼容前端带盐 SHA-256 哈希（HASH_SALT = 'SU_HG_2025_LGKJ'）
+        salted = 'SU_HG_2025_LGKJ' + password
+        return secrets.compare_digest(hashlib.sha256(salted.encode('utf-8')).hexdigest(), stored)
     except Exception:
         return False
 

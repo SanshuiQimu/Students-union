@@ -49,6 +49,10 @@
     body{padding-top:50px !important}
     #loginPage{padding-top:70px !important;align-items:flex-start !important}
     .fullpage-slide{top:50px !important;height:calc(100% - 50px) !important}
+    .fullpage-slide::before{
+      content:'';position:absolute;top:-50px;left:0;width:100%;height:50px;
+      background:var(--bg);z-index:1;
+    }
     .modal-overlay{padding-top:70px !important;align-items:flex-start !important}
     .toast{top:74px !important}
   }
@@ -2825,16 +2829,17 @@ applyAppTheme();
     window.applyAppTheme = function(){ origApply(); buildGradient(); };
   }
 
-  // 滚动时显示/隐藏遮罩
+  // 滚动时显示/隐藏遮罩（仅主页和登录页，二级面板不显示）
   function updateBarVisibility(){
+    // 有全屏面板打开时不显示遮罩
+    var openPanels = document.querySelectorAll('.fullpage-slide.slide-in-left');
+    if(openPanels.length > 0){
+      bar.style.opacity = '0';
+      return;
+    }
     var scrolled = false;
     // 检查主页面滚动
     if(window.scrollY > 5) scrolled = true;
-    // 检查全屏面板内的滚动
-    var panels = document.querySelectorAll('.fullpage-slide.slide-in-left');
-    for(var i = 0; i < panels.length; i++){
-      if(panels[i].scrollTop > 5){ scrolled = true; break; }
-    }
     // 检查 mainPage 内部滚动容器
     var mainPage = document.getElementById('mainPage');
     if(mainPage){

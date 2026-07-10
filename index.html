@@ -1123,8 +1123,8 @@ function doLogin(user, passHash){
   }
 
   initMain();
-  // 初始化 dock 第一个 tab 为 active
-  setActiveIndex(0);
+  // 硬重置 dock 滑块到第一个 tab（无动画，避免残留上次位置）
+  resetDockSlider(0);
 
   // 数据已在登录时从云端同步，无需再次同步
 
@@ -1144,8 +1144,8 @@ function handleLogout(){
   // Reset tab
   currentTab = 0;
   switchTab(0);
-  // 重置 Dock 滑块位置到第一个 tab
-  setActiveIndex(0);
+  // 硬重置 Dock 滑块位置到第一个 tab
+  resetDockSlider(0);
 }
 
 document.getElementById('loginPass').addEventListener('keydown', e => { if(e.key === 'Enter') handleLogin(); });
@@ -2092,10 +2092,19 @@ function setExpanding(val) {
 
 function setActiveIndex(idx) {
   currentActiveIndex = idx;
-  // 立即同步滑块位置，避免残留上次退出的位置
+  // 只设目标位置，让 physLoop 动画过去
+  targetX = TARGET_POSITIONS[idx];
+  isAutoAnimating = true;
+  switchTab(idx);
+}
+
+function resetDockSlider(idx) {
+  // 硬重置滑块位置（登录/退出时使用，无动画）
+  currentActiveIndex = idx;
   targetX = TARGET_POSITIONS[idx];
   currentX = TARGET_POSITIONS[idx];
   lastX = TARGET_POSITIONS[idx];
+  vel = 0;
   slider.style.left = `${currentX}px`;
   switchTab(idx);
 }

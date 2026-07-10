@@ -1246,7 +1246,124 @@ function _setupLoginSession(found, isDefaultPwd){
     document.getElementById('changePwdHint').style.display = 'block';
     document.getElementById('changePwdModal').classList.add('show');
   }
+
+  // 保存登录状态（同设备免登录）
+  try {
+    localStorage.setItem('su_saved_login', JSON.stringify({
+      name: found.name,
+      role: selectedRole,
+      ts: Date.now()
+    }));
+  } catch(e) {}
 }
+
+// ===== 自动登录（同设备免登录）=====
+function tryAutoLogin(){
+  try {
+    var saved = localStorage.getItem('su_saved_login');
+    if(!saved) return false;
+    var data = JSON.parse(saved);
+    // 7天内免登录
+    if(Date.now() - data.ts > 7 * 24 * 60 * 60 * 1000){
+      localStorage.removeItem('su_saved_login');
+      return false;
+    }
+    // 先加载数据，再恢复登录
+    selectedRole = data.role || '部长';
+    // 同步角色按钮
+    document.querySelectorAll('.role-btn').forEach(function(b){
+      b.classList.remove('active');
+      if(b.textContent.trim() === selectedRole) b.classList.add('active');
+    });
+
+    fetch(API_BASE + '/api/members', {headers:{'Accept':'application/json'}})
+      .then(function(r){ return r.json(); })
+      .then(function(membersData){
+        if(Array.isArray(membersData) && membersData.length > 0){
+          members = membersData;
+          members.forEach(function(m){ if(!m.passwordHash) m.passwordHash = DEFAULT_PASSWORD_HASH; });
+          saveDataLocal();
+        } else {
+          loadFromLocal();
+        }
+        var found = members.find(function(m){ return m.name === data.name; });
+        if(found){
+          _setupLoginSession(found, found.passwordHash === DEFAULT_PASSWORD_HASH);
+        } else {
+          localStorage.removeItem('su_saved_login');
+        }
+      })
+      .catch(function(){
+        loadFromLocal();
+        var found = members.find(function(m){ return m.name === data.name; });
+        if(found){
+          _setupLoginSession(found, found.passwordHash === DEFAULT_PASSWORD_HASH);
+        }
+      });
+    return true;
+  } catch(e) {
+    return false;
+  }
+}
+
+// ===== 返回键处理 =====
+function _closeTopPanel(){
+  var panels = [
+    {id: 'aboutPage', close: 'closeAboutPage()'},
+    {id: 'targetedMsgPage', close: 'closeTargetedMsg()'},
+    {id: 'broadcastPage', close: 'closeBroadcast()'},
+    {id: 'badgePage', close: 'closeBadgeApply()'},
+    {id: 'msgPage', close: 'closeMessages()'}
+  ];
+  for(var i = 0; i < panels.length; i++){
+    var el = document.getElementById(panels[i].id);
+    if(el && el.classList.contains('slide-in-left')){
+      eval(panels[i].close);
+      return true;
+    }
+  }
+  // 检查 modal
+  var modals = ['memberModal', 'confirmModal', 'changePwdModal'];
+  for(var j = 0; j < modals.length; j++){
+    var m = document.getElementById(modals[j]);
+    if(m && m.classList.contains('show')){
+      m.classList.remove('show');
+      return true;
+    }
+  }
+  return false;
+}
+
+// popstate 处理（移动端返回键）
+window.addEventListener('popstate', function(e){
+  if(_closeTopPanel()){
+    history.pushState(null, '', location.href);
+    return;
+  }
+  // 在主界面，再按一次退出
+  if(document.getElementById('mainPage').style.display === 'block'){
+    if(window._exitConfirm){
+      window._exitConfirm = false;
+      history.back();
+      return;
+    }
+    window._exitConfirm = true;
+    showToast('info', '再按一次返回键退出');
+    history.pushState(null, '', location.href);
+    setTimeout(function(){ window._exitConfirm = false; }, 2000);
+  }
+});
+
+// 页面加载时初始化 history 栈
+(function(){
+  history.pushState(null, '', location.href);
+  // 尝试自动登录
+  setTimeout(function(){
+    if(!tryAutoLogin()){
+      loadData();
+    }
+  }, 100);
+})();
 
 function handleLogout(){
   document.getElementById('mainPage').style.display = 'none';
@@ -1254,6 +1371,8 @@ function handleLogout(){
   document.getElementById('loginPage').style.display = 'flex';
   document.getElementById('loginUser').value = '';
   document.getElementById('loginPass').value = '';
+  // 清除保存的登录状态
+  localStorage.removeItem('su_saved_login');
   // Reset tab
   currentTab = 0;
   switchTab(0);

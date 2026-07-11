@@ -637,7 +637,7 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
           <span style="color:var(--text-secondary);font-size:18px">›</span>
         </div>
         <div class="settings-item" style="cursor:pointer" onclick="openUpdatePage()">
-          <span>系统更新</span>
+          <span id="updateEntryLabel">系统更新</span>
           <span style="color:var(--text-secondary);font-size:18px">›</span>
         </div>
       </div>
@@ -788,7 +788,7 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
   <div style="max-width:600px;margin:0 auto;padding:20px 20px 100px">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;padding-top:10px">
       <button class="btn btn-secondary" onclick="closeUpdatePage()" style="padding:8px 14px;font-size:13px">← 返回</button>
-      <h2 style="font-size:18px;font-weight:600">系统更新</h2>
+      <h2 id="updatePageTitle" style="font-size:18px;font-weight:600">系统更新</h2>
     </div>
     <!-- 应用信息头 -->
     <div style="text-align:center;padding:32px 20px 24px">
@@ -2107,6 +2107,31 @@ var _selectedVerCode = 0;
 
 function openUpdatePage(){
   var p = document.getElementById('updatePage');
+  var isApp = document.documentElement.classList.contains('android-app');
+  // 根据环境设置文案
+  if(isApp){
+    document.getElementById('updateEntryLabel').textContent = '系统更新';
+    document.getElementById('updatePageTitle').textContent = '系统更新';
+    document.getElementById('updateCurrentVer').textContent = '版本 3.0.310.2';
+    document.getElementById('checkUpdateLeft').textContent = '检测更新';
+    document.getElementById('checkUpdateBtn').textContent = '检测更新';
+    document.getElementById('checkUpdateBtn').onclick = doCheckUpdate;
+  } else {
+    document.getElementById('updateEntryLabel').textContent = '安装App';
+    document.getElementById('updatePageTitle').textContent = '安装App';
+    document.getElementById('updateCurrentVer').textContent = '仅为安卓11-安卓16进行了适配';
+    // 获取最新版本号显示
+    fetch(API_BASE + '/api/version/latest')
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        document.getElementById('checkUpdateLeft').textContent = '最新版本 ' + data.version;
+      })
+      .catch(function(){
+        document.getElementById('checkUpdateLeft').textContent = '最新版本 3.0.310.2';
+      });
+    document.getElementById('checkUpdateBtn').textContent = '即可下载';
+    document.getElementById('checkUpdateBtn').onclick = function(){ doDownloadUpdate(null); };
+  }
   p.classList.remove('slide-out-left');
   p.classList.add('slide-in-left');
   loadVersionList();

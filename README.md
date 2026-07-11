@@ -123,8 +123,8 @@ Supabase 云端表：user_account（username, password_hash, name, dept, positio
 
 首次启动会自动创建默认管理员：
 
-- 姓名 / 用户名：林可翔
-- 部门：秘书处 — 处长
+- 姓名 / 用户名：***
+- 部门：***
 - 初始密码：123456（请首次登录后立即修改）
 
 ---

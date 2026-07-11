@@ -1417,11 +1417,11 @@ function _handleAndroidBack(){
   // 2. 在主界面，先确保回到 tab1（不带 dock 动画，直接切换）
   if(document.getElementById('mainPage').style.display === 'block'){
     if(currentTab !== 0){
-      // 直接切换到 tab1，不触发 dock 动画
-      switchTab(0);
-      // 同步 dock 滑块位置（无动画）
-      if(typeof resetDockSlider === 'function'){
-        resetDockSlider(0);
+      // 切换到 tab1，带 dock 玻璃动画
+      if(typeof setActiveIndex === 'function'){
+        setActiveIndex(0);
+      } else {
+        switchTab(0);
       }
       return 'handled';
     }

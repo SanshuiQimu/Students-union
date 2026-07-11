@@ -1408,33 +1408,42 @@ function _closeTopPanel(){
   return false;
 }
 
-// popstate 处理（移动端返回键）
-window.addEventListener('popstate', function(e){
+// Android 返回键专用处理函数
+function _handleAndroidBack(){
+  // 1. 先关闭打开的面板
   if(_closeTopPanel()){
-    history.pushState(null, '', location.href);
-    return;
+    return 'handled';
   }
-  // 在主界面，先确保回到 tab1（带 dock 动画）
+  // 2. 在主界面，先确保回到 tab1（不带 dock 动画，直接切换）
   if(document.getElementById('mainPage').style.display === 'block'){
     if(currentTab !== 0){
-      if(typeof setActiveIndex === 'function'){
-        setActiveIndex(0);
-      } else {
-        switchTab(0);
+      // 直接切换到 tab1，不触发 dock 动画
+      switchTab(0);
+      // 同步 dock 滑块位置（无动画）
+      if(typeof resetDockSlider === 'function'){
+        resetDockSlider(0);
       }
-      history.pushState(null, '', location.href);
-      return;
+      return 'handled';
     }
-    // 已经在 tab1，再按一次退出
+    // 3. 已经在 tab1，双击退出
     if(window._exitConfirm){
       window._exitConfirm = false;
-      history.back();
-      return;
+      return 'exit';
     }
     window._exitConfirm = true;
     showToast('info', '再按一次返回键退出');
-    history.pushState(null, '', location.href);
     setTimeout(function(){ window._exitConfirm = false; }, 2000);
+    return 'handled';
+  }
+  // 不在主界面（登录页等），允许退出
+  return 'exit';
+}
+
+// popstate 处理（浏览器环境）
+window.addEventListener('popstate', function(e){
+  var result = _handleAndroidBack();
+  if(result === 'handled'){
+    history.pushState(null, '', location.href);
   }
 });
 

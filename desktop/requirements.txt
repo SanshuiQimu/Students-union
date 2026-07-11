@@ -1,14 +1,18 @@
-# ===== 学生会人事管理系统 - Windows 桌面端依赖 =====
-# 核心 GUI 框架（含 WebEngine 用于渲染现有 index.html）
-PySide6==6.6.3
-PySide6-Addons==6.6.3
-PySide6-Essentials==6.6.3
+# ===== 学生会人事管理系统 - Windows 桌面端依赖（轻量版）=====
+# 窗口渲染：pywebview（基于系统 WebView2，无需打包 Chromium）
+pywebview>=4.4.1
 
-# Windows 原生 Toast 通知（通知中心交互式通知，可选增强）
-win11toast==0.35
+# 系统托盘：pystray
+pystray>=0.19.5
 
-# 图像处理（托盘图标生成）
-Pillow==10.4.0
+# 图像处理（托盘图标）
+Pillow>=10.0.0
 
-# 内嵌后端依赖（开箱即用本地运行时需要）
+# HTTP 客户端
+requests>=2.31.0
+
+# 内嵌后端
 flask>=2.3.0
+
+# Windows 原生 Toast 通知
+win11toast>=0.35

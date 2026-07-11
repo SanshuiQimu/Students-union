@@ -120,15 +120,16 @@ Python 端 `QWebEnginePage.javaScriptConsoleMessage` 拦截并解析，转为 Qt
 
 已通过 PyInstaller + `build.spec` 打包为单文件可执行程序，效果类似微信桌面端。
 
-**exe 位置**：`desktop/dist/学生会人事管理系统.exe`（约 230MB）
+**exe 位置**：`desktop/dist/学生会人事管理系统.exe`（约 36MB，远低于 100MB 限制）
 
 **已实现特性**：
 - ✅ **无控制台窗口**（`console=False`）—— 纯 GUI 体验，不弹出黑框
-- ✅ **独立窗口** —— 自带标题栏、窗口图标、可调整大小
+- ✅ **独立窗口** —— pywebview（系统 WebView2）渲染，自带标题栏、窗口图标
 - ✅ **任务栏图标** —— Windows 任务栏显示应用图标
-- ✅ **系统托盘常驻** —— 最小化到托盘，右键菜单
+- ✅ **系统托盘常驻** —— pystray 实现，右键菜单，最小化到托盘
 - ✅ **双击即运行** —— 无需安装 Python 或浏览器，所有依赖内嵌
 - ✅ **内嵌后端** —— Flask 后端 + 前端页面打包在内，开箱即用
+- ✅ **体积优化** —— 剥离 PySide6/QtWebEngine(Chromium 150MB+)，改用系统 WebView2
 
 **重新打包**（修改代码后）：
 

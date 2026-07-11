@@ -758,7 +758,7 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
         </div>
         <div style="font-size:16px;font-weight:600;color:var(--text)">学生会人事管理系统</div>
         <div style="font-size:13px;color:var(--text-secondary);margin-top:6px">华东师范大学附属龙港科技中学</div>
-        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px">版本 3.0.310.1 Beta</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px">版本 3.0.310.2</div>
       </div>
       <div style="border-top:1px solid var(--border);padding-top:24px;text-align:center;font-size:13px;color:var(--text-secondary);line-height:2">
         <div style="font-weight:600;color:var(--text);font-size:14px;margin-bottom:12px">版权信息</div>
@@ -796,7 +796,12 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
         <img src="school-logo.png" style="width:100%;height:100%;object-fit:contain" alt="校徽">
       </div>
       <div style="font-size:16px;font-weight:600;color:var(--text)">华高学生会人事管理系统</div>
-      <div id="updateCurrentVer" style="font-size:13px;color:var(--text-secondary);margin-top:6px">版本 3.0.310.1 Beta</div>
+      <div id="updateCurrentVer" style="font-size:13px;color:var(--text-secondary);margin-top:6px">版本 3.0.310.2</div>
+    </div>
+    <!-- 检测更新卡片 -->
+    <div id="checkUpdateCard" style="background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between">
+      <div id="checkUpdateLeft" style="font-size:15px;font-weight:500;transition:opacity .4s ease">检测更新</div>
+      <button id="checkUpdateBtn" onclick="doCheckUpdate()" style="padding:8px 18px;border-radius:10px;border:none;background:#22c55e;color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .4s ease,background .3s">检测更新</button>
     </div>
     <!-- 版本列表 -->
     <div id="updateVerList" style="background:var(--bg-card);border:1px solid var(--border);border-radius:16px;overflow:hidden">
@@ -811,11 +816,6 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;padding-top:10px">
       <button class="btn btn-secondary" onclick="closeUpdateDetailPage()" style="padding:8px 14px;font-size:13px">← 返回</button>
       <h2 id="updateDetailTitle" style="font-size:18px;font-weight:600">更新日志</h2>
-    </div>
-    <!-- 检测更新卡片 -->
-    <div id="checkUpdateCard" style="background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between">
-      <div id="checkUpdateLeft" style="font-size:15px;font-weight:500;transition:opacity .4s ease">检测更新</div>
-      <button id="checkUpdateBtn" onclick="doCheckUpdate()" style="padding:8px 18px;border-radius:10px;border:none;background:#22c55e;color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .4s ease,background .3s">检测更新</button>
     </div>
     <!-- 更新日志内容 -->
     <div id="updateDetailContent" style="background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:24px 20px">
@@ -2101,7 +2101,7 @@ function closeAboutPage(){
 }
 
 // ===== 系统更新 =====
-var _currentVerCode = 310; // 当前安装的版本号
+var _currentVerCode = 3102; // 当前安装的版本号
 var _updateVersions = [];
 var _selectedVerCode = 0;
 
@@ -2132,6 +2132,17 @@ function loadVersionList(){
     });
 }
 
+function _verTagHTML(tag){
+  var colors = {
+    'Beta': '#a855f7',
+    '正式版内测': '#eab308',
+    '正式版公开': '#22c55e',
+    '已撤包': '#ef4444'
+  };
+  var c = colors[tag] || '#888';
+  return '<span style="display:inline-block;font-size:11px;font-weight:600;color:' + c + ';background:' + c + '20;border:1px solid ' + c + '40;border-radius:6px;padding:2px 7px;margin-left:8px;vertical-align:middle">' + (tag || '') + '</span>';
+}
+
 function renderVersionList(){
   var listEl = document.getElementById('updateVerList');
   if(!_updateVersions.length){
@@ -2143,7 +2154,7 @@ function renderVersionList(){
     var isCurrent = v.versionCode === _currentVerCode;
     html += '<div onclick="openUpdateDetail(' + v.versionCode + ')" style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;border-bottom:' + (i < _updateVersions.length - 1 ? '1px solid var(--border)' : 'none') + '">';
     html += '<div>';
-    html += '<div style="font-size:15px;font-weight:500;color:var(--text)">华高学生会 ' + v.version + ' 主要更新</div>';
+    html += '<div style="font-size:15px;font-weight:500;color:var(--text)">华高学生会 ' + v.version + ' 主要更新' + _verTagHTML(v.tag) + '</div>';
     html += '<div style="font-size:13px;color:var(--text-secondary);margin-top:4px">' + (v.date || '') + (isCurrent ? ' · 当前版本' : '') + '</div>';
     html += '</div>';
     html += '<span style="color:var(--text-secondary);font-size:18px">›</span>';
@@ -2158,21 +2169,16 @@ function openUpdateDetail(vc){
   p.classList.remove('slide-out-left');
   p.classList.add('slide-in-left');
 
-  // 重置检测更新卡片
-  document.getElementById('checkUpdateLeft').textContent = '检测更新';
-  document.getElementById('checkUpdateLeft').style.opacity = '1';
-  document.getElementById('checkUpdateBtn').textContent = '检测更新';
-  document.getElementById('checkUpdateBtn').style.opacity = '1';
-  document.getElementById('checkUpdateBtn').style.background = '#22c55e';
-  document.getElementById('checkUpdateBtn').onclick = doCheckUpdate;
-
   // 加载版本详情
   fetch(API_BASE + '/api/version/' + vc)
     .then(function(r){ return r.json(); })
     .then(function(v){
       document.getElementById('updateDetailTitle').textContent = v.version + ' 更新日志';
       var content = '';
-      content += '<div style="font-size:14px;color:var(--text-secondary);margin-bottom:16px">' + (v.date || '') + '</div>';
+      content += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">';
+      content += '<span style="font-size:14px;color:var(--text-secondary)">' + (v.date || '') + '</span>';
+      if(v.tag) content += _verTagHTML(v.tag);
+      content += '</div>';
       if(v.changelog && v.changelog.length){
         content += '<div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:12px">主要更新</div>';
         v.changelog.forEach(function(item){

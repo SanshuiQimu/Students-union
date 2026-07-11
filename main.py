@@ -597,19 +597,46 @@ def _save_versions(versions):
         conn.commit()
         conn.close()
 
+def _default_versions():
+    """全部历史版本数据"""
+    return [
+        {"version":"3.0.310.2","versionCode":3102,"date":"2026-07-11","tag":"正式版内测","changelog":["检测更新卡片移至版本列表页置顶","版本类型标签(Beta/正式版内测/正式版公开/已撤包)","修复应用图标模糊","WebView禁缓存，每次加载最新页面"],"downloadUrl":"/api/download/apk"},
+        {"version":"3.0.310.0","versionCode":3100,"date":"2026-07-11","tag":"正式版公开","changelog":["数据存储由阿里云与Supabase提供支持","防火墙与CDN加速由Cloudflare提供支持","代码存放由GitHub提供支持"],"downloadUrl":"/api/download/apk"},
+        {"version":"3.0.309.0","versionCode":3090,"date":"2026-07-11","tag":"正式版公开","changelog":["返回键逻辑优化","同设备免登录"],"downloadUrl":""},
+        {"version":"3.0.307.1","versionCode":3071,"date":"2026-07-11","tag":"Beta","changelog":["更新系统更新模块数据表，新增版本更新日志独立存储表","系统更新设置项归类至设置页面独立分组","版本列表页面全新重构，展示历史迭代记录","优化深色模式文字对比度"],"downloadUrl":""},
+        {"version":"3.0.306.1","versionCode":3061,"date":"2026-07-11","tag":"Beta","changelog":["更新系统更新模块数据表，新增版本更新日志独立存储表","系统更新设置项归类至设置页面独立分组","版本列表页面全新重构，展示历史迭代记录","优化深色模式文字对比度"],"downloadUrl":""},
+        {"version":"3.0.306.0","versionCode":3060,"date":"2026-07-10","tag":"正式版公开","changelog":["编译Android安装包StudentsUnion.apk，规范安装包版本命名规则","实现前端消息推送逻辑，前端3秒轮询、后端10秒广播推送站内通知","修复Android WebView专属样式失效问题，二级页面顶部遮罩视觉bug全部修复","统一页面顶部渐变遮罩参数，调整遮罩高度、羽化透明度，优化滚动渐变动画效果"],"downloadUrl":""},
+        {"version":"3.0.304.0","versionCode":3040,"date":"2026-07-10","tag":"正式版公开","changelog":["彻底修复移动端深浅色跟随系统切换失效bug，页面自动跟随手机系统明暗模式","移动端全部页面内容下移200px，完美避开手机状态栏遮挡，适配各类机型屏幕"],"downloadUrl":""},
+        {"version":"3.0.208.0","versionCode":2080,"date":"2026-07-09","tag":"正式版公开","changelog":["重构密码校验流程，SHA-256哈希校验逻辑迁移后端API执行，前端不参与加密运算","群发通知功能迁移至设置页面独立选项，拆分全站通知、部门定向通知两类推送","新增定向部门通知发布功能，管理员可单独给指定部门全员推送站内公告","添加PWA manifest配置，网页端支持安装至手机桌面，具备离线基础访问能力"],"downloadUrl":""},
+        {"version":"3.0.204.0","versionCode":2040,"date":"2026-07-09","tag":"正式版公开","changelog":["基本实现安卓端功能，可以推进","下调页面顶部遮罩模糊度，多层渐变分层延伸，滚动动态调整透明度","移动端页面下移参数统一规范，遮罩高度80px/120px双模式适配不同页面","统一box-shadow填充规则，空页面原色填充，消除空白区域视觉断层"],"downloadUrl":""},
+        {"version":"3.0.114.0","versionCode":1140,"date":"2026-07-09","tag":"正式版公开","changelog":["修复本地缓存与Supabase批量双向同步报错问题，批量导入导出不再丢失档案数据","优化Supabase数据库连接逻辑，适配新版service_key密钥校验规则","修复成员管理API跨端同步异常，网页、App、桌面端人员数据实时互通","修复Vercel Serverless服务崩溃问题，兼容SQLite本地缓存与线上PostgreSQL数据库"],"downloadUrl":""},
+        {"version":"3.0.110.0","versionCode":1100,"date":"2026-07-09","tag":"已撤包","changelog":["新增群发通知功能","新增部门消息功能","优化系统稳定性"],"downloadUrl":""},
+        {"version":"3.0.101.0","versionCode":1010,"date":"2026-07-08","tag":"正式版公开","changelog":["新增会长专属职位权限配置，职位表联动PostgreSQL数据库权限字段","完善Docker容器化部署配置文件，统一Railway、Vercel两套部署环境变量","修复Dock导航点击状态残留bug，切换页面重置导航激活标识","优化移动端本地存储Volume持久化路径，重启App缓存数据不丢失"],"downloadUrl":""},
+        {"version":"3.0.2.0","versionCode":200,"date":"2026-07-07","tag":"正式版公开","changelog":["前端sha256函数加盐值，后端验证同步加盐，PBKDF2和带盐SHA-256两种格式都能正确验证","构建Android端APP并初次上线","接入Supabase完整后端账号认证体系，统一三端登录、鉴权校验规则","全局新增底部统一版权信息","优化Dock底部导航栏玻璃磨砂动画","移除项目冗余python依赖库，精简requirements打包配置"],"downloadUrl":""},
+        {"version":"2.0.219.0","versionCode":2190,"date":"2026-07-06","tag":"Beta","changelog":["尝试用C++重构","大部分语言已调整为Python","修复系统稳定性"],"downloadUrl":""},
+        {"version":"2.0.214.0","versionCode":2140,"date":"2026-07-05","tag":"正式版公开","changelog":["多种编译语言逐渐采用Python编译","优化页面初始隐藏加载CSS动画，页面打开过渡更柔和"],"downloadUrl":""},
+        {"version":"2.0.208.0","versionCode":2081,"date":"2026-07-03","tag":"正式版公开","changelog":["完善数据库兼容逻辑，无DATABASE_URL环境变量时自动切换本地SQLite缓存","全局替换SQLAlchemy数据库交互写法，优化PostgreSQL云库查询效率","Tongle页面全屏玻璃磨砂效果重构，新增多层渐变折射动画，滚动实时渲染","底部导航图标默认透明，点击切换高亮渐变，统一全页面动效节奏"],"downloadUrl":""},
+        {"version":"2.0.201.0","versionCode":2010,"date":"2026-07-02","tag":"Beta","changelog":["修复Railway部署502服务异常问题，完善bash一键部署启动脚本","删除运行冗余缓存文件、旧版依赖配置，重置requirements标准依赖清单","回滚部分底层基础代码，解决新版本构建失败问题","恢复项目Profile配置、gunicorn启动服务参数，适配Vercel后台运行规则","修复通知系统bug"],"downloadUrl":""},
+        {"version":"2.0.200.0","versionCode":2000,"date":"2026-07-02","tag":"已撤包","changelog":["新增消息通知功能","新增挂牌补办功能","优化系统稳定性"],"downloadUrl":""},
+        {"version":"2.0.105.0","versionCode":1050,"date":"2026-07-01","tag":"正式版公开","changelog":["修复SHA256加密函数漏洞，H数组每次调用自动重置，避免加密结果错乱","SHA256哈希方法迁移全局公共工具库，修复修改密码、角色鉴权加密异常","新增登录页修改密码功能，首次登录默认密码弹窗强制提醒修改","新增忘记密码重置数据入口，独立密码找回页面","支持关闭液态玻璃效果选项，新增高斯模糊毛玻璃质感组件"],"downloadUrl":""},
+        {"version":"2.0.104.0","versionCode":1040,"date":"2026-06-30","tag":"正式版公开","changelog":["区分超级管理员/部门部长/普通干事三级账号权限，数据访问自动隔离","录入人员时职位、部门双向联动校验，管理层职位绑定对应分管部门","新增operation_logs日志数据表，记录登录、修改、导入、删除全操作行为","支持管理员冻结违规账号，冻结后全端禁止登录，解冻后方可正常使用"],"downloadUrl":""},
+        {"version":"2.0.7.0","versionCode":2070,"date":"2026-06-29","tag":"正式版公开","changelog":["提供标准导入模板，导入时自动校验部门、职位字段，冲突条目标红提示","支持批量标记人员离职、批量调整人员部门与职位，一键导出筛选后档案","成员、部门、通知表建立复合索引，大批量数据筛选速度大幅提升","后台新增手动一键备份、每日凌晨自动全量备份，保留近30天备份快照"],"downloadUrl":""},
+        {"version":"2.0.6.0","versionCode":2060,"date":"2026-06-28","tag":"Beta","changelog":["人员新增表单实时同步最新部门、职位列表，停用选项自动隐藏","删除部门、职位仅做软标记，历史人员档案完整保留，不会级联清空数据"],"downloadUrl":""},
+        {"version":"2.0.2.0","versionCode":2020,"date":"2026-06-27","tag":"Beta","changelog":["满血Liquid glass设计，优化视效和交互体验","新增导入Excel导出数据双功能按钮，采用区分式配色，按钮增加hover动效","支持Excel表格批量导入学生会成员档案，一键导出全系统人事数据存档","支持批量修改部门简介，一键筛选所有已停用部门","新建positions数据表，存储职位名称、权限等级、归属层级"],"downloadUrl":""},
+        {"version":"1.0.103","versionCode":1030,"date":"2026-06-26","tag":"正式版公开","changelog":["添加修改密码功能，登录时默认密码弹窗提示修改","修复crypto.subtle兼容性+SHA256纯JS实现+app.py直接读取文件","优化系统稳定性"],"downloadUrl":""},
+        {"version":"1.0.100.0","versionCode":1000,"date":"2026-06-25","tag":"Beta","changelog":["Liquid glass风格首次登场","修复登录函数缩进错误导致的运行报错","首次引入图片模块，图像服务由蜜蜂图床提供支持","实时统计各部门在岗总人数，卡片点击可快速跳转对应部门成员列表","新增部门简介展示栏","添加requirements.txt和Procfile修复Railway部署"],"downloadUrl":""},
+        {"version":"1.0.9.0","versionCode":1090,"date":"2026-06-24","tag":"正式版公开","changelog":["密码SHA-256哈希加密存储，防止明文泄露","优化系统稳定性"],"downloadUrl":""},
+        {"version":"1.0.4.0","versionCode":1040,"date":"2026-06-23","tag":"正式版公开","changelog":["全线启用深色夜间模式，优化个人信息卡片圆角、金色高亮标识，头像文字模块分层阴影重做，解决低亮度屏幕文字发灰问题","统一底部导航栏选中态金色高亮规范","管理员身份标签自动高亮区分，个人信息页自动填充当前登录账号部门","修复部分机型卡片内容挤压错位bug"],"downloadUrl":""},
+        {"version":"1.0.1.0","versionCode":1010,"date":"2026-06-23","tag":"正式版公开","changelog":["系统上线，由Railway提供部署服务，由Github提供代码托管","UI视觉：整体风格简约清新","系统设计：大部分以静态资源为主设计"],"downloadUrl":""},
+    ]
+
 @app.route('/api/version/latest')
 def version_latest():
     """获取最新版本信息"""
     versions = _get_versions()
     if not versions:
-        return jsonify({
-            'version': '3.0.309.1 Beta',
-            'versionCode': 309,
-            'date': '2026-07-11',
-            'summary': '沉浸式全屏+消息通知修复',
-            'changelog': ['沉浸式全屏，无黑边', '状态栏和导航栏透明', '消息通知后台保活修复', '首次打开请求权限'],
-            'downloadUrl': '/api/download/apk'
-        })
+        versions = _default_versions()
+        _save_versions(versions)
     return jsonify(versions[0])
 
 @app.route('/api/version/list')
@@ -617,13 +644,8 @@ def version_list():
     """获取所有版本列表"""
     versions = _get_versions()
     if not versions:
-        # 返回默认版本
-        versions = [{
-            'version': '3.0.309.1 Beta',
-            'versionCode': 309,
-            'date': '2026-07-11',
-            'summary': '沉浸式全屏+消息通知修复'
-        }]
+        versions = _default_versions()
+        _save_versions(versions)
     return jsonify(versions)
 
 @app.route('/api/version/<int:vc>')

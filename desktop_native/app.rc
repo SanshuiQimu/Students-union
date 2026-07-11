@@ -1,9 +1,0 @@
-// 资源文件 —— 应用图标 + 清单
-#include <windows.h>
-
-// 应用图标（引用 school-logo.ico，若无则使用默认）
-// 注：需将 school-logo.png 转换为 .ico 格式
-IDI_APP_ICON ICON "school-logo.ico"
-
-// 应用清单：声明 Windows 10/11 兼容性 + DPI 感知
-1 24 "app.manifest"

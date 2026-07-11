@@ -1,0 +1,142 @@
+# 学生会人事管理系统
+
+华东师范大学附属龙港科技中学学生会人事管理系统。
+基于 Flask 的轻量化全栈一体开发，提供本地 SQLite / 云 PostgreSQL（Railway）/Supabase 三方存储与同步，适配本地服务器、Vercel Serverless 与 Railway 部署，目标是低门槛的校园人事台账管理平台。
+
+## 一、项目概览
+
+### 项目背景
+解决成员信息分散、人员增删无台账、登录鉴权缺失、公告无统一存储等问题，提供一个开箱即用的学生会管理后台。后端单文件（main.py）承载接口与逻辑，静态 HTML 直接渲染页面，便于教学与快速部署。
+
+### 核心定位
+- 使用对象：学生会管理人员、团委老师、学生会干事
+- 核心功能：成员档案管理、账号鉴权、公告管理、人员增删改查
+- 部署场景：本地调试、Vercel Serverless、Railway 云、私有 Linux 主机
+
+### 技术栈
+- 后端：Flask（main.py）
+- 生产：gunicorn
+- 数据库：SQLite（默认）、PostgreSQL（可选）、Supabase（账号同步）
+- 密码：PBKDF2 加盐哈希（兼容旧版 SHA256 校验）
+- 并发：线程锁保护数据库读写
+- 网络：urllib 调用 Supabase REST（无额外 SDK）
+- 前端：静态 index.html + PWA manifest
+
+## 二、核心功能
+1. 成员管理
+   - GET  /api/members — 获取全部成员
+   - POST /api/members — 批量导入/覆盖成员
+   - PUT  /api/member/<mid> — 修改单个成员
+   - DELETE /api/member/<mid> — 删除成员
+   - 自动同步成员至 Supabase 用户表
+
+2. 账号与鉴权（Supabase）
+   - POST /api/auth/login — 登录
+   - POST /api/auth/register — 注册新账号
+   - GET  /api/auth/users — 列表账号
+   - PUT  /api/auth/update — 修改账号/重置密码
+   - DELETE /api/auth/delete — 删除账号
+   - POST /api/auth/init — 初始化默认管理员（林可翔 / 密码 123456）
+   - GET  /api/auth/status — 认证状态诊断
+
+3. 公告管理
+   - GET  /api/messages — 读取公告
+   - POST /api/messages — 批量覆盖公告
+
+4. 系统与同步
+   - 数据库降级策略：优先 PostgreSQL → SQLite
+   - 支持多端双向同步：本地 ↔ Supabase
+   - /api/diagnose — Supabase 连接诊断
+   - 启动时自动初始化表与默认管理员
+
+5. 静态页面 & PWA
+   - 根路径自动渲染 index.html
+   - manifest.json 支持移动端添加桌面
+
+## 三、目录结构
+```
+student-union-admin/
+├── main.py            # Flask 后端主程序
+├── index.html         # 管理界面与登录页面
+├── manifest.json      # PWA 配置
+├── requirements.txt   # 依赖
+├── vercel.json        # Vercel 部署配置
+├── school-logo.png    # 校徽 / PWA 图标
+└── data.db            # 本地 SQLite（运行时生成）
+```
+
+## 四、本地快速运行
+1. 环境：Python 3.8+
+2. 克隆仓库：
+```bash
+git clone https://github.com/你的用户名/student-union-admin.git
+cd student-union-admin
+```
+3. 安装依赖：
+```bash
+pip install -r requirements.txt
+```
+4. 开发启动：
+```bash
+python main.py
+# 访问 http://127.0.0.1:5000
+```
+5. 生产（gunicorn）：
+```bash
+gunicorn main:app --bind 0.0.0.0:5000
+```
+
+## 五、环境变量（云部署）
+- PostgreSQL（Railway）
+  - DATABASE_URL=postgresql://user:pass@host:port/dbname
+- Supabase
+  - SUPABASE_URL=https://xxx.supabase.co
+  - SUPABASE_SERVICE_KEY=你的_supabase_service_key
+- Railway 卷挂载（可选）
+  - RAILWAY_VOLUME_MOUNT_PATH=/data
+
+未配置云变量时自动使用本地 SQLite，开箱即用。
+
+## 六、部署建议
+- Vercel：一键部署 vercel.json，适合演示；注意 /tmp 为临时目录，需启用 Supabase 同步以持久化数据。
+- Railway：推荐绑定 PostgreSQL 并启用 Volume 持久化。
+- 私有服务器：直接运行 Python 或 gunicorn，开放 5000 端口。
+
+## 七、数据库设计（简介）
+- members(id INTEGER PK, data TEXT JSON)
+- messages(id INTEGER PK, data TEXT JSON)
+- meta(key TEXT PK, value TEXT) — 系统元信息（是否已初始化）
+
+Supabase 对应表：user_account（映射 username / password_hash / name / dept / position / join_date / leave_date）
+
+## 八、默认管理员
+首次启动自动创建：
+- 姓名 / 用户名：林可翔
+- 部门：秘书处，职位：处长
+- 初始密码：123456（请首次登录后立即修改）
+
+## 九、API 摘要
+参见“核心功能”章节中列出的接口。
+
+## 十、项目亮点
+- 零配置本地运行（SQLite）与云端持久化（Postgres/Supabase）
+- 最小依赖：仅 Flask + gunicorn
+- 安全：PBKDF2 加盐密码存储
+- 支持 PWA，适配移动端
+- 自动双向同步、首次开箱即用
+
+## 十一、常见问题（FAQ）
+- 无法访问页面：确认端口 5000 未占用并放行防火墙
+- Vercel 数据丢失：Vercel 无持久化，建议开启 Supabase 同步
+- Supabase 同步失败：检查 SUPABASE_URL 与 SUPABASE_SERVICE_KEY，并确保网络可达
+- 忘记管理员密码：调用 /api/auth/init 重置默认管理员，或直接修改数据库 passwordHash 字段
+
+## 十二、贡献指南
+- Fork → 新建 feature/xxx 分支 → 本地测试 → 提交 PR
+- 保持接口层次清晰，数据库读写使用线程锁，兼容多数据库
+
+## 十三、许可证
+MIT License — 校内教学与二次开发可用，保留开源声明后可商用。
+
+---
+如需包含示例截图、API 文档或部署示例（Vercel / Railway 配置）可继续补充，我可帮你生成对应说明或示例文件。

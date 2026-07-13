@@ -1302,7 +1302,7 @@ function _setupLoginSession(found, isDefaultPwd){
   const exportBtn = document.getElementById('exportBtnWrap');
   if(exportBtn) exportBtn.style.display = showAdmin ? '' : 'none';
   const syncBtn = document.getElementById('syncBtnWrap');
-  if(syncBtn) syncBtn.style.display = showAdmin ? '' : 'none';
+  if(syncBtn) syncBtn.style.display = '';
 
   // 群发通知和部门通知选项：仅部长及以上可见
   document.getElementById('broadcastSettingItem').style.display = showAdmin ? 'flex' : 'none';

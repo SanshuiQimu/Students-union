@@ -447,6 +447,7 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
           <button class="btn btn-primary" id="addBtn" onclick="openModal('add')">＋ 添加成员</button>
           <button class="btn btn-secondary" id="importBtnWrap" onclick="document.getElementById('importFile').click()">📥 导入Excel</button>
           <button class="btn btn-secondary" id="exportBtnWrap" onclick="exportData()">📤 导出数据</button>
+          <button class="btn btn-secondary" id="syncBtnWrap" onclick="syncMemberData()">🔄 同步数据</button>
           <input type="file" id="importFile" accept=".xlsx,.xls,.csv" style="display:none" onchange="importExcel(event)">
         </div>
       </div>
@@ -1300,6 +1301,8 @@ function _setupLoginSession(found, isDefaultPwd){
   document.getElementById('addBtn').style.display = showAdmin ? '' : 'none';
   const exportBtn = document.getElementById('exportBtnWrap');
   if(exportBtn) exportBtn.style.display = showAdmin ? '' : 'none';
+  const syncBtn = document.getElementById('syncBtnWrap');
+  if(syncBtn) syncBtn.style.display = showAdmin ? '' : 'none';
 
   // 群发通知和部门通知选项：仅部长及以上可见
   document.getElementById('broadcastSettingItem').style.display = showAdmin ? 'flex' : 'none';
@@ -1686,7 +1689,7 @@ function renderTable(){
       const c = avatarColors[(m.id||i) % avatarColors.length];
       const isActive = !m.leaveDate;
       return `<tr>
-        <td><div class="member-name"><div class="member-avatar" style="background:${c}22;color:${c}">${m.name[0]}</div>${m.name}</div></td>
+        <td><div class="member-name"><div class="member-avatar" style="background:${c}22;color:${c}">${m.name[0]}</div>${m.name}${m.dismissPending?'<span style="font-size:11px;color:var(--warning);margin-left:4px;background:rgba(245,158,11,0.1);padding:2px 6px;border-radius:4px">开除申请待审批</span>':''}</div></td>
         <td><span class="dept-tag dept-${m.dept}">${m.dept}</span></td>
         <td><span class="position-tag position-${m.position}">${m.position}</span></td>
         <td style="color:var(--text-secondary);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${m.duty}">${m.duty}</td>
@@ -1706,10 +1709,11 @@ function renderTable(){
       const actionCell = canManage(m) ? `<td><div class="actions-cell">
           <button class="icon-btn" title="编辑" onclick="openModal('edit',${m.id})">✏</button>
           <button class="icon-btn" title="重置密码" onclick="confirmResetPwd(${m.id},'${m.name}')">🔑</button>
-          <button class="icon-btn delete" title="删除" onclick="confirmDelete(${m.id},'${m.name}')">🗑</button>
+          <button class="icon-btn delete" title="开除" onclick="confirmDelete(${m.id},'${m.name}')">🗑</button>
         </div></td>` : (showAdmin ? '<td></td>' : '');
+      const dismissTag = m.dismissPending ? '<span style="font-size:11px;color:var(--warning);margin-left:4px;background:rgba(245,158,11,0.1);padding:2px 6px;border-radius:4px">开除申请待审批</span>' : '';
       return `<tr>
-        <td><div class="member-name"><div class="member-avatar" style="background:${c}22;color:${c}">${m.name[0]}</div>${m.name}</div></td>
+        <td><div class="member-name"><div class="member-avatar" style="background:${c}22;color:${c}">${m.name[0]}</div>${m.name}${dismissTag}</div></td>
         ${accountCell}
         <td><span class="dept-tag dept-${m.dept}">${m.dept}</span></td>
         <td><span class="position-tag position-${m.position}">${m.position}</span></td>
@@ -1816,24 +1820,53 @@ function saveMember(){
   renderTable();
 }
 
-// ===== DELETE =====
+// ===== 开除（提交审批） =====
 function confirmDelete(id, name){
   const m = members.find(x => x.id === id);
-  if(!canManage(m)){ showToast('error','无权限删除该成员'); return; }
-  document.getElementById('confirmMsg').textContent = `确定要删除「${name}」的记录吗？此操作不可撤销。`;
-  document.getElementById('confirmModal').querySelector('.modal-header h2').textContent = '确认删除';
-  document.getElementById('confirmDelBtn').textContent = '确认删除';
+  if(!canManage(m)){ showToast('error','无权限开除该成员'); return; }
+  // 检查是否已有待审批的开除申请
+  var msgs = loadMessages();
+  var hasPending = msgs.some(function(msg){
+    return msg.type === 'dismiss-apply' && msg.applicant && msg.applicant !== '' && String(msg.memberId) === String(id) && !msg.handled;
+  });
+  if(hasPending){
+    showToast('error', '该成员已有开除申请待审批');
+    return;
+  }
+  document.getElementById('confirmMsg').innerHTML = `确定要开除「<b>${name}</b>」吗？<br><span style="font-size:12px;color:var(--text-secondary);margin-top:4px;display:inline-block">提交后将发送至秘书部审批，审批通过后该成员将被开除</span>`;
+  document.getElementById('confirmModal').querySelector('.modal-header h2').textContent = '确认开除';
+  document.getElementById('confirmDelBtn').textContent = '提交开除申请';
   document.getElementById('confirmDelBtn').className = 'btn btn-danger';
   document.getElementById('confirmModal').classList.add('show');
   document.getElementById('confirmDelBtn').onclick = () => {
-    members = members.filter(m => m.id !== id);
-    saveData();
+    submitDismissApply(id, name);
     closeConfirm();
-    updateStats();
-    renderDeptGrid();
-    renderTable();
-    showToast('success', `已删除 ${name}`);
   };
+}
+function submitDismissApply(memberId, memberName){
+  var m = members.find(x => x.id === memberId);
+  if(!m) return;
+  // 给秘书处所有成员发消息
+  var secretaries = members.filter(function(x){ return x.dept === '秘书处' && !x.leaveDate; });
+  if(secretaries.length === 0){
+    showToast('error', '秘书处暂无在任成员，无法提交审批');
+    return;
+  }
+  secretaries.forEach(function(s){
+    sendMsg(s.name, '开除申请 - ' + memberName,
+      currentUser.name + '（' + currentUser.dept + '）提交了开除「' + memberName + '」（' + (m.dept||'') + '/' + (m.position||'') + '）的申请，请及时审批。',
+      currentUser.name, currentUser.dept, 'dismiss-apply', memberName, memberId);
+  });
+  // 给申请人自己也发一条，方便追踪
+  sendMsg(currentUser.name, '开除申请已提交 - ' + memberName,
+    '你提交的开除「' + memberName + '」的申请已发送至秘书部，请等待审批结果。',
+    currentUser.name, currentUser.dept, 'dismiss-pending', memberName);
+  // 标记成员有待审批的开除申请
+  if(!m.dismissPending) m.dismissPending = true;
+  saveData();
+  updateMsgBadge();
+  renderTable();
+  showToast('success', '开除申请已提交至秘书部审批');
 }
 function closeConfirm(){ document.getElementById('confirmModal').classList.remove('show'); }
 
@@ -1990,7 +2023,7 @@ function updateMsgBadge(){
     if(unread) b.classList.add('show'); else b.classList.remove('show');
   });
 }
-function sendMsg(to, title, body, operatorName, operatorDept, type, applicantName){
+function sendMsg(to, title, body, operatorName, operatorDept, type, applicantName, memberId){
   var msgs = loadMessages();
   msgs.push({
     id: msgs.length ? Math.max.apply(null, msgs.map(function(m){return m.id})) + 1 : 1,
@@ -2002,7 +2035,8 @@ function sendMsg(to, title, body, operatorName, operatorDept, type, applicantNam
     time: new Date().toLocaleString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}),
     read: false,
     type: type || 'info',
-    applicant: applicantName || ''
+    applicant: applicantName || '',
+    memberId: memberId || 0
   });
   saveMessages(msgs);
 }
@@ -2468,6 +2502,13 @@ function renderMessages(){
         '<button onclick="handleBadgeReject(\''+m.applicant+'\',\''+m.id+'\')" style="flex:1;padding:10px;border-radius:10px;border:1px solid rgba(252,129,129,0.3);background:rgba(252,129,129,0.15);color:var(--danger);font-size:13px;font-weight:600;cursor:pointer;transition:all .3s">驳回</button>' +
         '</div>';
     }
+    // 秘书处成员看到待审批的开除申请，显示审批按钮
+    if(m.type === 'dismiss-apply' && isSecretary && !m.handled){
+      approveBtns = '<div style="display:flex;gap:10px;margin-top:12px">' +
+        '<button onclick="handleDismissApprove(\''+m.applicant+'\','+m.memberId+','+m.id+')" style="flex:1;padding:10px;border-radius:10px;border:1px solid rgba(72,187,120,0.3);background:rgba(72,187,120,0.15);color:var(--success);font-size:13px;font-weight:600;cursor:pointer;transition:all .3s">同意开除</button>' +
+        '<button onclick="handleDismissReject(\''+m.applicant+'\','+m.memberId+','+m.id+')" style="flex:1;padding:10px;border-radius:10px;border:1px solid rgba(252,129,129,0.3);background:rgba(252,129,129,0.15);color:var(--danger);font-size:13px;font-weight:600;cursor:pointer;transition:all .3s">驳回</button>' +
+        '</div>';
+    }
     return '<div class="'+cls+'">' +
       '<div class="msg-title">'+m.title+'</div>' +
       '<div class="msg-body">'+m.body+'</div>' +
@@ -2505,6 +2546,113 @@ function handleBadgeReject(applicantName, msgId){
   updateMsgBadge();
   renderMessages();
   showToast('success', '已驳回 ' + applicantName + ' 的挂牌补办申请');
+}
+
+// 审批开除申请 - 通过
+function handleDismissApprove(applicantName, memberId, msgId){
+  // 从云端加载最新成员数据，确保多端同步
+  fetch(API_BASE + '/api/members')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if(Array.isArray(data)) members = data;
+      // 找到要开除的成员
+      var m = members.find(function(x){ return String(x.id) === String(memberId); });
+      if(!m){
+        showToast('error', '未找到该成员，可能已被开除');
+        // 仍然标记消息已处理
+        markMsgHandled(msgId);
+        return;
+      }
+      // 执行开除：从成员列表中移除
+      members = members.filter(function(x){ return String(x.id) !== String(memberId); });
+      saveData();
+      // 标记消息已处理
+      markMsgHandled(msgId);
+      // 通知申请人
+      sendMsg(applicantName,
+        '开除申请已通过 - ' + (m.name || applicantName),
+        '你提交的开除「' + (m.name||applicantName) + '」的申请已通过，该成员已被开除。',
+        currentUser.name, currentUser.dept, 'dismiss-result'
+      );
+      // 通知所有管理员同步数据
+      var admins = members.filter(function(x){ return x.isAdmin || x.isDeptAdmin; });
+      admins.forEach(function(a){
+        if(a.name !== currentUser.name && a.name !== applicantName){
+          sendMsg(a.name, '成员已被开除 - ' + (m.name||applicantName),
+            (m.name||applicantName) + ' 已被开除，请同步数据查看最新成员列表。',
+            currentUser.name, currentUser.dept, 'info');
+        }
+      });
+      updateStats();
+      renderDeptGrid();
+      renderTable();
+      updateMsgBadge();
+      renderMessages();
+      showToast('success', '已通过开除申请，' + (m.name||applicantName) + ' 已被开除');
+    })
+    .catch(function(e){
+      showToast('error', '网络错误，请稍后重试');
+    });
+}
+
+// 审批开除申请 - 驳回
+function handleDismissReject(applicantName, memberId, msgId){
+  // 从云端加载最新数据
+  fetch(API_BASE + '/api/members')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if(Array.isArray(data)) members = data;
+      // 移除待审批标记
+      var m = members.find(function(x){ return String(x.id) === String(memberId); });
+      if(m && m.dismissPending){ delete m.dismissPending; saveData(); }
+      // 标记消息已处理
+      markMsgHandled(msgId);
+      // 通知申请人
+      sendMsg(applicantName,
+        '开除申请已驳回 - ' + (m ? m.name : applicantName),
+        '你提交的开除「' + (m ? m.name : applicantName) + '」的申请已被驳回，该成员信息保留不变。',
+        currentUser.name, currentUser.dept, 'dismiss-result'
+      );
+      renderTable();
+      updateMsgBadge();
+      renderMessages();
+      showToast('success', '已驳回开除申请');
+    })
+    .catch(function(e){
+      showToast('error', '网络错误，请稍后重试');
+    });
+}
+
+// 标记消息已处理
+function markMsgHandled(msgId){
+  var msgs = loadMessages();
+  msgs.forEach(function(m){ if(String(m.id) === String(msgId)) m.handled = true; });
+  saveMessages(msgs);
+}
+
+// ===== 同步成员数据 =====
+function syncMemberData(){
+  showToast('info', '正在同步数据...');
+  fetch(API_BASE + '/api/members')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if(Array.isArray(data)){
+        members = data;
+        saveDataLocal();
+        // 同时同步消息
+        syncMessagesFromCloud();
+        updateStats();
+        renderDeptGrid();
+        renderTable();
+        updateMsgBadge();
+        showToast('success', '数据同步完成');
+      } else {
+        showToast('error', '同步失败：数据格式错误');
+      }
+    })
+    .catch(function(e){
+      showToast('error', '同步失败：网络错误');
+    });
 }
 
 // ===== EXPORT =====

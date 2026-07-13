@@ -489,6 +489,7 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
       <div class="table-container">
         <div class="table-toolbar" id="memberSearchBar" style="display:none">
           <div class="search-box" style="max-width:none"><input type="text" id="memberSearchInput" placeholder="搜索姓名、部门、职责..." oninput="renderTable()"></div>
+          <button class="btn btn-secondary" onclick="syncMemberData()">🔄 同步数据</button>
         </div>
         <div style="overflow-x:auto">
           <table>
@@ -2563,7 +2564,10 @@ function handleDismissApprove(applicantName, memberId, msgId){
         markMsgHandled(msgId);
         return;
       }
-      // 执行开除：从成员列表中移除
+      // 执行开除：先调用后端DELETE删除云端记录（含Supabase）
+      fetch(API_BASE + '/api/member/' + memberId, { method: 'DELETE' })
+        .catch(function(e){ console.warn('DELETE同步失败:', e); });
+      // 从成员列表中移除
       members = members.filter(function(x){ return String(x.id) !== String(memberId); });
       saveData();
       // 标记消息已处理

@@ -162,7 +162,13 @@ def _sync_members_to_supabase(members):
         for name, user_data in to_update:
             _supabase_patch('user_account', f"username=eq.{name}", user_data)
 
-        return {'synced': True, 'inserted': len(to_insert), 'updated': len(to_update)}
+        # 删除 Supabase 中已不存在的成员（被开除的成员）
+        current_names = {m.get('name', '') for m in members if m.get('name')}
+        to_delete = existing_names - current_names
+        for name in to_delete:
+            _supabase_delete('user_account', f"username=eq.{name}")
+
+        return {'synced': True, 'inserted': len(to_insert), 'updated': len(to_update), 'deleted': len(to_delete)}
     except Exception as e:
         print(f"[Supabase] 同步失败: {e}")
         return {'synced': False, 'reason': str(e)}

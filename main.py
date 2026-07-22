@@ -606,7 +606,8 @@ def _save_versions(versions):
 def _default_versions():
     """全部历史版本数据"""
     return [
-        {"version":"3.0.310.6","versionCode":3106,"date":"2026-07-12","tag":"正式版公开","changelog":["修复Android返回键逻辑，支持一级一级退出后返回tab1","二级界面退出后保留滚动位置，不再返回顶部","版本号由Android端实际注入，修复旧APK检测不到新版本的问题","检测更新卡片从三级界面移到二级界面置顶","浏览器环境显示安装App，App环境显示系统更新","版本类型标签(Beta/正式版内测/正式版公开/已撤包)","修复应用图标模糊","WebView禁缓存，每次加载最新页面"],"downloadUrl":"/api/download/apk"},
+        {"version":"3.0.310.7","versionCode":3107,"date":"2026-07-22","tag":"正式版公开","changelog":["域名更换为xsh.ssqm.top","开除审批流程：提交开除申请至秘书部审批","秘书部消息界面通过/驳回开除申请","待审批期间成员名后显示开除申请待审批标签","审批通过后多端同步删除成员(含Supabase云端)","新增同步数据按钮(所有成员可见)","二级界面退出后保留滚动位置","版本号由Android端实际注入"],"downloadUrl":"/api/download/apk"},
+        {"version":"3.0.310.6","versionCode":3106,"date":"2026-07-12","tag":"正式版公开","changelog":["修复Android返回键逻辑，支持一级一级退出后返回tab1","二级界面退出后保留滚动位置，不再返回顶部","版本号由Android端实际注入，修复旧APK检测不到新版本的问题","检测更新卡片从三级界面移到二级界面置顶","浏览器环境显示安装App，App环境显示系统更新","版本类型标签(Beta/正式版内测/正式版公开/已撤包)","修复应用图标模糊","WebView禁缓存，每次加载最新页面"],"downloadUrl":"/api/download/apk?vc=3106"},
         {"version":"3.0.310.2","versionCode":3102,"date":"2026-07-11","tag":"正式版公开","changelog":["检测更新卡片移至版本列表页置顶","版本类型标签(Beta/正式版内测/正式版公开/已撤包)","修复应用图标模糊","WebView禁缓存，每次加载最新页面"],"downloadUrl":"/api/download/apk?vc=3102"},
         {"version":"3.0.310.0","versionCode":3100,"date":"2026-07-11","tag":"正式版公开","changelog":["数据存储由阿里云与Supabase提供支持","防火墙与CDN加速由Cloudflare提供支持","代码存放由GitHub提供支持"],"downloadUrl":"/api/download/apk?vc=3100"},
         {"version":"3.0.309.0","versionCode":3090,"date":"2026-07-11","tag":"正式版公开","changelog":["返回键逻辑优化","同设备免登录"],"downloadUrl":""},

@@ -1273,7 +1273,7 @@ function handleLoginLocal(user, pass){
 function doLoginSupabase(userData, rawPass){
   const found = {
     name: userData.name,
-    dept: userData.dept || '',
+    dept: normalizeDept(userData.dept || ''),
     position: userData.position || '',
     duty: userData.duty || '',
     joinDate: userData.join_date || userData.joinDate || '',
@@ -2146,7 +2146,14 @@ function openTargetedMsg(){
   members.forEach(function(m){
     if(m.dept && !m.leaveDate && uniqueDepts.indexOf(m.dept) === -1) uniqueDepts.push(m.dept);
   });
-  uniqueDepts.sort();
+  // 按指定部门顺序排序
+  var order = ['主席团','办公室','宣传部','体育部','生活部','纪检部','学习部','社团管理部'];
+  uniqueDepts.sort(function(a,b){
+    var ia = order.indexOf(a), ib = order.indexOf(b);
+    if(ia === -1) ia = 999;
+    if(ib === -1) ib = 999;
+    return ia - ib;
+  });
   var select = document.getElementById('targetDeptSelect');
   select.innerHTML = uniqueDepts.map(function(d){ return '<option value="'+d+'">'+d+'</option>'; }).join('');
   document.getElementById('targetedMsgText').value = '';
@@ -2495,8 +2502,9 @@ function doDownloadUpdate(verInfo){
   btnEl.textContent = '下载中...';
   btnEl.disabled = true;
 
-  // 在 Android App 中通过 WebView 下载
-  var downloadUrl = API_BASE + '/api/download/apk';
+  // 构造下载URL，带版本号参数
+  var vc = (verInfo && verInfo.versionCode) ? verInfo.versionCode : '';
+  var downloadUrl = API_BASE + '/api/download/apk' + (vc ? '?vc=' + vc : '');
 
   // 尝试用 Android 原生下载
   if(window.AndroidNative && window.AndroidNative.downloadApk){

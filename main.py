@@ -465,6 +465,9 @@ def auth_login():
 
     # 返回用户数据（不含密码哈希）
     safe = {k: v for k, v in user.items() if k != 'password_hash'}
+    # 规范化部门名（旧名→新名）
+    if 'dept' in safe and safe['dept']:
+        safe['dept'] = _normalize_dept(safe['dept'])
     return jsonify(safe)
 
 @app.route('/api/auth/register', methods=['POST'])

@@ -68,7 +68,7 @@ def init_db():
             try:
                 if not s.query(_Meta).filter_by(key='initialized').first():
                     defaults = [
-                        {"id":1,"name":"林可翔","dept":"秘书处","position":"处长","duty":"统筹协调各部门工作、会议组织","joinDate":"2026-04-01","leaveDate":"","passwordHash":"d5a5d426cd7786950e59b8a714186ca384da908a40c7b7bfdccfbbb64b668df7"}
+                        {"id":1,"name":"林可翔","dept":"办公室","position":"处长","duty":"统筹协调各部门工作、会议组织","joinDate":"2026-04-01","leaveDate":"","passwordHash":"d5a5d426cd7786950e59b8a714186ca384da908a40c7b7bfdccfbbb64b668df7"}
                     ]
                     for m in defaults:
                         s.add(_Member(data=json.dumps(m, ensure_ascii=False)))
@@ -83,7 +83,7 @@ def init_db():
             conn.execute('''CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT)''')
             if not conn.execute("SELECT value FROM meta WHERE key='initialized'").fetchone():
                 defaults = [
-                    {"id":1,"name":"林可翔","dept":"秘书处","position":"处长","duty":"统筹协调各部门工作、会议组织","joinDate":"2026-04-01","leaveDate":"","passwordHash":"d5a5d426cd7786950e59b8a714186ca384da908a40c7b7bfdccfbbb64b668df7"}
+                    {"id":1,"name":"林可翔","dept":"办公室","position":"处长","duty":"统筹协调各部门工作、会议组织","joinDate":"2026-04-01","leaveDate":"","passwordHash":"d5a5d426cd7786950e59b8a714186ca384da908a40c7b7bfdccfbbb64b668df7"}
                 ]
                 for m in defaults:
                     conn.execute("INSERT INTO members (data) VALUES (?)", (json.dumps(m, ensure_ascii=False),))
@@ -555,7 +555,7 @@ def auth_init():
         'username': '林可翔',
         'password_hash': _hash_password('123456'),
         'name': '林可翔',
-        'dept': '秘书处',
+        'dept': '办公室',
         'position': '处长',
         'duty': '统筹协调各部门工作、会议组织',
         'join_date': '2026-04-01',
@@ -606,7 +606,7 @@ def _save_versions(versions):
 def _default_versions():
     """全部历史版本数据"""
     return [
-        {"version":"3.0.330.0","versionCode":3300,"date":"2026-08-22","tag":"正式版公开","changelog":["新增主席团部门","新增副处长、副会长职位","全站图标统一采用IconPark图标库(iconpark.oceanengine.com/official)","校徽logo与外观设置图标除外","权限逻辑同步更新，副会长享有主席团管理权限，副处长享有秘书处管理权限","修复版本数据格式错误","新增系统介绍界面os3.ssqm.top","修复了已知问题，提升系统流畅度"],"downloadUrl":"/api/download/apk?vc=3300"},
+        {"version":"3.0.330.0","versionCode":3300,"date":"2026-08-22","tag":"正式版公开","changelog":["新增主席团部门","新增副处长、副会长职位","全站图标统一采用IconPark图标库(iconpark.oceanengine.com/official)","校徽logo与外观设置图标除外","权限逻辑同步更新，副会长享有主席团管理权限，副处长享有办公室管理权限","干事更名为部员","秘书处更名为办公室，社联会更名为社团管理部","成员列表全部自动按部门顺序排序：主席团、办公室、宣传部、体育部、生活部、纪检部、学习部、社团管理部","点击关于本系统跳转至os3.ssqm.top","修复APK闪退问题：运行时权限请求、通知通道、错误页面、进度条、主题注入","修复了已知问题，提升系统流畅度"],"downloadUrl":"/api/download/apk?vc=3300"},
         {"version":"3.0.310.7","versionCode":3107,"date":"2026-07-22","tag":"正式版公开","changelog":["域名更换为xsh.ssqm.top","开除审批流程：提交开除申请至秘书部审批","秘书部消息界面通过/驳回开除申请","待审批期间成员名后显示开除申请待审批标签","审批通过后多端同步删除成员(含Supabase云端)","新增同步数据按钮(所有成员可见)","二级界面退出后保留滚动位置","版本号由Android端实际注入"],"downloadUrl":"/api/download/apk"},
         {"version":"3.0.310.6","versionCode":3106,"date":"2026-07-12","tag":"正式版公开","changelog":["修复Android返回键逻辑，支持一级一级退出后返回tab1","二级界面退出后保留滚动位置，不再返回顶部","版本号由Android端实际注入，修复旧APK检测不到新版本的问题","检测更新卡片从三级界面移到二级界面置顶","浏览器环境显示安装App，App环境显示系统更新","版本类型标签(Beta/正式版内测/正式版公开/已撤包)","修复应用图标模糊","WebView禁缓存，每次加载最新页面"],"downloadUrl":"/api/download/apk?vc=3106"},
         {"version":"3.0.310.2","versionCode":3102,"date":"2026-07-11","tag":"正式版公开","changelog":["检测更新卡片移至版本列表页置顶","版本类型标签(Beta/正式版内测/正式版公开/已撤包)","修复应用图标模糊","WebView禁缓存，每次加载最新页面"],"downloadUrl":"/api/download/apk?vc=3102"},
@@ -628,7 +628,7 @@ def _default_versions():
         {"version":"2.0.201.0","versionCode":2010,"date":"2026-07-02","tag":"Beta","changelog":["修复Railway部署502服务异常问题，完善bash一键部署启动脚本","删除运行冗余缓存文件、旧版依赖配置，重置requirements标准依赖清单","回滚部分底层基础代码，解决新版本构建失败问题","恢复项目Profile配置、gunicorn启动服务参数，适配Vercel后台运行规则","修复通知系统bug"],"downloadUrl":""},
         {"version":"2.0.200.0","versionCode":2000,"date":"2026-07-02","tag":"已撤包","changelog":["新增消息通知功能","新增挂牌补办功能","优化系统稳定性"],"downloadUrl":""},
         {"version":"2.0.105.0","versionCode":1050,"date":"2026-07-01","tag":"正式版公开","changelog":["修复SHA256加密函数漏洞，H数组每次调用自动重置，避免加密结果错乱","SHA256哈希方法迁移全局公共工具库，修复修改密码、角色鉴权加密异常","新增登录页修改密码功能，首次登录默认密码弹窗强制提醒修改","新增忘记密码重置数据入口，独立密码找回页面","支持关闭液态玻璃效果选项，新增高斯模糊毛玻璃质感组件"],"downloadUrl":""},
-        {"version":"2.0.104.0","versionCode":1040,"date":"2026-06-30","tag":"正式版公开","changelog":["区分超级管理员/部门部长/普通干事三级账号权限，数据访问自动隔离","录入人员时职位、部门双向联动校验，管理层职位绑定对应分管部门","新增operation_logs日志数据表，记录登录、修改、导入、删除全操作行为","支持管理员冻结违规账号，冻结后全端禁止登录，解冻后方可正常使用"],"downloadUrl":""},
+        {"version":"2.0.104.0","versionCode":1040,"date":"2026-06-30","tag":"正式版公开","changelog":["区分超级管理员/部门部长/普通部员三级账号权限，数据访问自动隔离","录入人员时职位、部门双向联动校验，管理层职位绑定对应分管部门","新增operation_logs日志数据表，记录登录、修改、导入、删除全操作行为","支持管理员冻结违规账号，冻结后全端禁止登录，解冻后方可正常使用"],"downloadUrl":""},
         {"version":"2.0.7.0","versionCode":2070,"date":"2026-06-29","tag":"正式版公开","changelog":["提供标准导入模板，导入时自动校验部门、职位字段，冲突条目标红提示","支持批量标记人员离职、批量调整人员部门与职位，一键导出筛选后档案","成员、部门、通知表建立复合索引，大批量数据筛选速度大幅提升","后台新增手动一键备份、每日凌晨自动全量备份，保留近30天备份快照"],"downloadUrl":""},
         {"version":"2.0.6.0","versionCode":2060,"date":"2026-06-28","tag":"Beta","changelog":["人员新增表单实时同步最新部门、职位列表，停用选项自动隐藏","删除部门、职位仅做软标记，历史人员档案完整保留，不会级联清空数据"],"downloadUrl":""},
         {"version":"2.0.2.0","versionCode":2020,"date":"2026-06-27","tag":"Beta","changelog":["满血Liquid glass设计，优化视效和交互体验","新增导入Excel导出数据双功能按钮，采用区分式配色，按钮增加hover动效","支持Excel表格批量导入学生会成员档案，一键导出全系统人事数据存档","支持批量修改部门简介，一键筛选所有已停用部门","新建positions数据表，存储职位名称、权限等级、归属层级"],"downloadUrl":""},

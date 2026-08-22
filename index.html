@@ -161,14 +161,14 @@
   .member-name{font-weight:600;display:flex;align-items:center;gap:10px}
   .member-avatar{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0}
   .dept-tag{display:inline-block;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:500}
-  .dept-秘书处{background:rgba(226,176,74,0.12);color:var(--gold)}
+  .dept-办公室{background:rgba(226,176,74,0.12);color:var(--gold)}
   .dept-学习部{background:rgba(66,153,225,0.12);color:#63b3ed}
   .dept-文体部{background:rgba(72,187,120,0.12);color:#68d391}
   .dept-体育部{background:rgba(72,187,120,0.12);color:#68d391}
   .dept-宣传部{background:rgba(237,137,54,0.12);color:#f6ad55}
   .dept-纪检部{background:rgba(252,129,129,0.12);color:#fc8181}
   .dept-生活部{background:rgba(72,187,187,0.12);color:#4fd1c5}
-  .dept-社联会{background:rgba(159,122,234,0.12);color:#b794f4}
+  .dept-社团管理部{background:rgba(159,122,234,0.12);color:#b794f4}
   .dept-主席团{background:rgba(237,45,45,0.12);color:#ef4444}
   .position-tag{font-size:12px;font-weight:500;padding:4px 10px;border-radius:6px}
   .position-会长{background:rgba(237,45,45,0.15);color:#ef4444;border:1px solid rgba(237,45,45,0.25)}
@@ -177,7 +177,7 @@
   .position-副处长{background:rgba(226,176,74,0.12);color:#f0c060;border:1px solid rgba(226,176,74,0.15)}
   .position-部长{background:rgba(226,176,74,0.15);color:var(--gold);border:1px solid rgba(226,176,74,0.2)}
   .position-副部长{background:rgba(159,122,234,0.15);color:#b794f4;border:1px solid rgba(159,122,234,0.2)}
-  .position-干事{background:rgba(128,128,128,0.06);color:var(--text-secondary);border:1px solid var(--border)}
+  .position-部员{background:rgba(128,128,128,0.06);color:var(--text-secondary);border:1px solid var(--border)}
   .status-active{color:var(--success)}
   .status-inactive{color:var(--text-secondary)}
   .actions-cell{display:flex;gap:8px}
@@ -677,7 +677,7 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
     </div>
     <div class="login-card" style="margin-top:20px">
       <p style="font-size:14px;color:var(--text-secondary);line-height:1.8;margin-bottom:20px">
-        请确认以下声明后提交申请，申请将发送至秘书处进行审批。
+        请确认以下声明后提交申请，申请将发送至办公室进行审批。
       </p>
       <div class="form-group">
         <label>申请人</label>
@@ -862,7 +862,7 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
             <path d="M20 44V23L12 28L12 44"/>
             <path d="M28 44V23L36 28L36 44"/>
             <path d="M41 44H8"/>
-          </svg><span id="dockTabLabel0">秘书处</span>
+          </svg><span id="dockTabLabel0">办公室</span>
         </div>
         <!-- Tab2: Department Overview -->
         <div class="dock-item" data-tab="1">
@@ -898,7 +898,7 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
             <path stroke="#fff" d="M20 44V23L12 28L12 44"/>
             <path stroke="#fff" d="M28 44V23L36 28L36 44"/>
             <path d="M41 44H8"/>
-          </svg><span>秘书处</span>
+          </svg><span>办公室</span>
         </div>
         <div class="dock-item">
           <svg viewBox="0 0 48 48" fill="currentColor" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
@@ -937,13 +937,13 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
         <div class="form-group"><label>姓名</label><input type="text" id="fName" placeholder="成员姓名"></div>
         <div class="form-group"><label>部门</label>
           <select id="fDept"><option value="">选择部门</option>
-            <option>秘书处</option><option>学习部</option><option>体育部</option><option>宣传部</option><option>纪检部</option><option>生活部</option><option>社联会</option><option>主席团</option>
+            <option>办公室</option><option>学习部</option><option>体育部</option><option>宣传部</option><option>纪检部</option><option>生活部</option><option>社团管理部</option><option>主席团</option>
           </select>
         </div>
       </div>
       <div class="form-row">
         <div class="form-group"><label>职位</label>
-          <select id="fPosition"><option value="">选择职位</option><option>会长</option><option>副会长</option><option>处长</option><option>副处长</option><option>部长</option><option>副部长</option><option>干事</option></select>
+          <select id="fPosition"><option value="">选择职位</option><option>会长</option><option>副会长</option><option>处长</option><option>副处长</option><option>部长</option><option>副部长</option><option>部员</option></select>
         </div>
         <div class="form-group"><label>入职时间</label><input type="date" id="fJoinDate"></div>
       </div>
@@ -1039,7 +1039,7 @@ function ipIcon(name, size) {
 // ===== DATA =====
 const STORAGE_KEY = 'su_members_data_v4';
 const DEFAULT_DATA = [
-  {id:1,name:'林可翔',dept:'秘书处',position:'处长',duty:'统筹协调各部门工作、会议组织',joinDate:'2026-04-01',leaveDate:''},
+  {id:1,name:'林可翔',dept:'办公室',position:'处长',duty:'统筹协调各部门工作、会议组织',joinDate:'2026-04-01',leaveDate:''},
 ];
 
 const HASH_SALT = 'SU_HG_2025_LGKJ';
@@ -1309,7 +1309,7 @@ function _setupLoginSession(found, isDefaultPwd){
     currentUser = {name:found.name, role:'成员', dept:found.dept, position:found.position, isAdmin:false, isDeptAdmin:false, isMember:true};
   } else {
     const isPresident = found.position === '会长' || found.position === '副会长';
-    const isSecretaryAdmin = isPresident || (found.dept === '秘书处' && (found.position === '处长' || found.position === '副处长' || found.position === '部长'));
+    const isSecretaryAdmin = isPresident || (found.dept === '办公室' && (found.position === '处长' || found.position === '副处长' || found.position === '部长'));
     const isDeptMinister = found.position === '处长' || found.position === '副处长' || found.position === '部长' || found.position === '副部长' || found.position === '副会长';
     currentUser = {
       name: found.name, role: found.position, dept: found.dept, position: found.position,
@@ -1334,7 +1334,7 @@ function _setupLoginSession(found, isDefaultPwd){
   document.getElementById('profileJoin').textContent = found.joinDate || '--';
   document.getElementById('profileLeave').textContent = found.leaveDate || '在任';
 
-  const deptLabel = currentUser.dept || '秘书处';
+  const deptLabel = currentUser.dept || '办公室';
   document.getElementById('dockTabLabel0').textContent = deptLabel;
 
   const showAdmin = currentUser.isAdmin || currentUser.isDeptAdmin;
@@ -1583,7 +1583,7 @@ function initMain(){
     members.forEach(function(m){
       sendMsg(m.name, '欢迎加入学生会',
         '您的部门为' + m.dept + '，职位为' + m.position + '。',
-        '系统', '秘书处');
+        '系统', '办公室');
     });
     localStorage.setItem('su_msg_initialized', '1');
   }
@@ -1680,15 +1680,23 @@ function updateStats(){
 }
 
 function getVisibleMembers(){
-  return members;
+  const deptOrder = ['主席团','办公室','宣传部','体育部','生活部','纪检部','学习部','社团管理部'];
+  return [...members].sort((a, b) => {
+    const ia = deptOrder.indexOf(a.dept);
+    const ib = deptOrder.indexOf(b.dept);
+    const oa = ia === -1 ? 999 : ia;
+    const ob = ib === -1 ? 999 : ib;
+    if(oa !== ob) return oa - ob;
+    return (a.id || 0) - (b.id || 0);
+  });
 }
 
 function renderDeptGrid(){
   const list = getVisibleMembers();
   const depts = [...new Set(list.map(m => m.dept))];
-  const colors = {'秘书处':'#e2b04a','学习部':'#4299e1','体育部':'#48bb78','宣传部':'#ed8936','纪检部':'#fc8181','生活部':'#4fd1c5','社联会':'#9f7aea','主席团':'#ef4444'};
-  const icons = {'秘书处':'clipboard','学习部':'book-open','体育部':'football','宣传部':'trumpet','纪检部':'check-one','生活部':'home-two','社联会':'cooperative-handshake','主席团':'crown'};
-  const descs = {'秘书处':'统筹协调，中枢管理','学习部':'学风建设，学术交流','体育部':'体育赛事，强身健体','宣传部':'宣传推广，形象建设','纪检部':'纪律检查，考勤管理','生活部':'生活服务，环境建设','社联会':'社团管理，活动统筹','主席团':'主席团统筹，领导决策'};
+  const colors = {'办公室':'#e2b04a','学习部':'#4299e1','体育部':'#48bb78','宣传部':'#ed8936','纪检部':'#fc8181','生活部':'#4fd1c5','社团管理部':'#9f7aea','主席团':'#ef4444'};
+  const icons = {'办公室':'clipboard','学习部':'book-open','体育部':'football','宣传部':'trumpet','纪检部':'check-one','生活部':'home-two','社团管理部':'cooperative-handshake','主席团':'crown'};
+  const descs = {'办公室':'统筹协调，中枢管理','学习部':'学风建设，学术交流','体育部':'体育赛事，强身健体','宣传部':'宣传推广，形象建设','纪检部':'纪律检查，考勤管理','生活部':'生活服务，环境建设','社团管理部':'社团管理，活动统筹','主席团':'主席团统筹，领导决策'};
   const total = list.length;
   document.getElementById('deptGrid').innerHTML = depts.map(d => {
     const count = list.filter(m => m.dept === d).length;
@@ -1716,7 +1724,11 @@ function filterByDept(dept){
 
 function buildFilters(){
   const list = getVisibleMembers();
-  const depts = ['全部', ...new Set(list.map(m => m.dept))];
+  const deptOrder = ['主席团','办公室','宣传部','体育部','生活部','纪检部','学习部','社团管理部'];
+  const presentDepts = [...new Set(list.map(m => m.dept))];
+  const orderedDepts = deptOrder.filter(d => presentDepts.includes(d));
+  const otherDepts = presentDepts.filter(d => !deptOrder.includes(d));
+  const depts = ['全部', ...orderedDepts, ...otherDepts];
   document.getElementById('filterBtns').innerHTML = depts.map(d =>
     `<button class="filter-btn ${d===currentFilter?'active':''}" onclick="setFilter('${d}')">${d}</button>`
   ).join('');
@@ -1874,7 +1886,7 @@ function saveMember(){
     // 给新成员发送欢迎消息
     sendMsg(name, '欢迎加入学生会',
       '您的部门为' + dept + '，职位为' + position + '。',
-      '系统', '秘书处');
+      '系统', '办公室');
     showToast('success', `已添加 ${name}`);
   }
   saveData();
@@ -1910,10 +1922,10 @@ function confirmDelete(id, name){
 function submitDismissApply(memberId, memberName){
   var m = members.find(x => x.id === memberId);
   if(!m) return;
-  // 给秘书处所有成员发消息
-  var secretaries = members.filter(function(x){ return x.dept === '秘书处' && !x.leaveDate; });
+  // 给办公室所有成员发消息
+  var secretaries = members.filter(function(x){ return x.dept === '办公室' && !x.leaveDate; });
   if(secretaries.length === 0){
-    showToast('error', '秘书处暂无在任成员，无法提交审批');
+    showToast('error', '办公室暂无在任成员，无法提交审批');
     return;
   }
   secretaries.forEach(function(s){
@@ -2095,7 +2107,7 @@ function sendMsg(to, title, body, operatorName, operatorDept, type, applicantNam
     title: title,
     body: body,
     operator: operatorName || '系统',
-    operatorDept: operatorDept || '秘书处',
+    operatorDept: operatorDept || '办公室',
     time: new Date().toLocaleString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}),
     read: false,
     type: type || 'info',
@@ -2225,10 +2237,7 @@ function _restorePanelScroll(panelId){
 }
 
 function openAboutPage(){
-  var p = document.getElementById('aboutPage');
-  _restorePanelScroll('aboutPage');
-  p.classList.remove('slide-out-left');
-  p.classList.add('slide-in-left');
+  window.open('https://os3.ssqm.top', '_blank');
 }
 function closeAboutPage(){
   _savePanelScroll('aboutPage');
@@ -2498,10 +2507,10 @@ function submitBadgeApply(){
     setTimeout(function(){ errEl.style.display = 'none'; }, 3000);
     return;
   }
-  // 发送申请消息给秘书处所有成员
-  var secretaries = members.filter(function(m){ return m.dept === '秘书处'; });
+  // 发送申请消息给办公室所有成员
+  var secretaries = members.filter(function(m){ return m.dept === '办公室'; });
   if(!secretaries.length){
-    errEl.textContent = '系统中未找到秘书处成员，无法提交';
+    errEl.textContent = '系统中未找到办公室成员，无法提交';
     errEl.style.display = 'block';
     setTimeout(function(){ errEl.style.display = 'none'; }, 3000);
     return;
@@ -2516,11 +2525,11 @@ function submitBadgeApply(){
   // 同时给申请人发一条通知
   sendMsg(currentUser.name,
     '挂牌补办申请已提交',
-    '您的挂牌补办申请已提交至秘书处，请等待审批结果。',
-    '系统', '秘书处', 'badge-info'
+    '您的挂牌补办申请已提交至办公室，请等待审批结果。',
+    '系统', '办公室', 'badge-info'
   );
   updateMsgBadge();
-  showToast('success', '申请已提交，请等待秘书处审批');
+  showToast('success', '申请已提交，请等待办公室审批');
   closeBadgeApply();
 }
 function markAllRead(){
@@ -2555,18 +2564,18 @@ function renderMessages(){
   }
   // 最新消息在前
   var sorted = list.slice().reverse();
-  var isSecretary = currentUser.dept === '秘书处';
+  var isSecretary = currentUser.dept === '办公室';
   container.innerHTML = sorted.map(function(m){
     var cls = m.read ? 'msg-item' : 'msg-item unread';
     var approveBtns = '';
-    // 秘书处成员看到待审批的挂牌申请，显示审批按钮
+    // 办公室成员看到待审批的挂牌申请，显示审批按钮
     if(m.type === 'badge-apply' && isSecretary && !m.handled){
       approveBtns = '<div style="display:flex;gap:10px;margin-top:12px">' +
         '<button onclick="handleBadgeApprove(\''+m.applicant+'\',\''+m.id+'\')" style="flex:1;padding:10px;border-radius:10px;border:1px solid rgba(72,187,120,0.3);background:rgba(72,187,120,0.15);color:var(--success);font-size:13px;font-weight:600;cursor:pointer;transition:all .3s">同意</button>' +
         '<button onclick="handleBadgeReject(\''+m.applicant+'\',\''+m.id+'\')" style="flex:1;padding:10px;border-radius:10px;border:1px solid rgba(252,129,129,0.3);background:rgba(252,129,129,0.15);color:var(--danger);font-size:13px;font-weight:600;cursor:pointer;transition:all .3s">驳回</button>' +
         '</div>';
     }
-    // 秘书处成员看到待审批的开除申请，显示审批按钮
+    // 办公室成员看到待审批的开除申请，显示审批按钮
     if(m.type === 'dismiss-apply' && isSecretary && !m.handled){
       approveBtns = '<div style="display:flex;gap:10px;margin-top:12px">' +
         '<button onclick="handleDismissApprove(\''+m.applicant+'\','+m.memberId+','+m.id+')" style="flex:1;padding:10px;border-radius:10px;border:1px solid rgba(72,187,120,0.3);background:rgba(72,187,120,0.15);color:var(--success);font-size:13px;font-weight:600;cursor:pointer;transition:all .3s">同意开除</button>' +
@@ -2778,8 +2787,8 @@ function importExcel(event){
           members.push({id:newId, name, dept, position, duty, joinDate, leaveDate, passwordHash: DEFAULT_PASSWORD_HASH});
           // 给新成员发送欢迎消息
           sendMsg(name, '欢迎加入学生会',
-            '您的部门为' + dept + '，职位为' + (position || '干事') + '。',
-            '系统', '秘书处');
+            '您的部门为' + dept + '，职位为' + (position || '部员') + '。',
+            '系统', '办公室');
         }
         imported++;
       });

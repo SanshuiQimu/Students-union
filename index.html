@@ -1057,6 +1057,17 @@ let currentTab = 0;
 // 云端 API 基地址（自动检测当前域名）
 var API_BASE = window.location.origin;
 
+// 部门名兼容映射：旧名 → 新名
+function normalizeDept(dept){
+  if(!dept) return dept;
+  const map = {'秘书处':'办公室','社联会':'社团管理部'};
+  return map[dept] || dept;
+}
+function normalizeMember(m){
+  if(m && m.dept) m.dept = normalizeDept(m.dept);
+  return m;
+}
+
 function loadData(){
   localStorage.removeItem('su_members_data');
   localStorage.removeItem('su_members_data_v2');
@@ -1065,7 +1076,7 @@ function loadData(){
     .then(function(r){ return r.json(); })
     .then(function(data){
       if(Array.isArray(data) && data.length > 0){
-        members = data;
+        members = data.map(normalizeMember);
         members.forEach(function(m){ if(!m.passwordHash) m.passwordHash = DEFAULT_PASSWORD_HASH; });
         saveDataLocal();
       } else {
@@ -1084,6 +1095,7 @@ function loadFromLocal(){
     try{ members = JSON.parse(saved); }catch(e){ members = []; }
   }
   if(!members || !members.length) members = [...DEFAULT_DATA];
+  members = members.map(normalizeMember);
   members.forEach(function(m){ if(!m.passwordHash) m.passwordHash = DEFAULT_PASSWORD_HASH; });
 }
 function saveDataLocal(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(members)); }
@@ -1118,7 +1130,7 @@ function syncFromCloud(){
     .then(function(r){ return r.json(); })
     .then(function(data){
       if(Array.isArray(data) && data.length > 0){
-        members = data;
+        members = data.map(normalizeMember);
         members.forEach(function(m){ if(!m.passwordHash) m.passwordHash = DEFAULT_PASSWORD_HASH; });
         saveDataLocal();
         // 刷新界面
@@ -1215,7 +1227,7 @@ async function handleLogin(){
       try {
         const mr = await fetch(API_BASE + '/api/members', {headers:{'Accept':'application/json'}});
         const md = await mr.json();
-        if (Array.isArray(md) && md.length > 0) { members = md; saveDataLocal(); }
+        if (Array.isArray(md) && md.length > 0) { members = md.map(normalizeMember); saveDataLocal(); }
         else loadFromLocal();
       } catch(e) { loadFromLocal(); }
 
@@ -1244,7 +1256,7 @@ function handleLoginLocal(user, pass){
     .then(function(r){ return r.json(); })
     .then(function(data){
       if(Array.isArray(data) && data.length > 0){
-        members = data;
+        members = data.map(normalizeMember);
         members.forEach(function(m){ if(!m.passwordHash) m.passwordHash = DEFAULT_PASSWORD_HASH; });
         saveDataLocal();
       } else {
@@ -2627,7 +2639,7 @@ function handleDismissApprove(applicantName, memberId, msgId){
   fetch(API_BASE + '/api/members')
     .then(function(r){ return r.json(); })
     .then(function(data){
-      if(Array.isArray(data)) members = data;
+      if(Array.isArray(data)) members = data.map(normalizeMember);
       // 找到要开除的成员
       var m = members.find(function(x){ return String(x.id) === String(memberId); });
       if(!m){
@@ -2677,7 +2689,7 @@ function handleDismissReject(applicantName, memberId, msgId){
   fetch(API_BASE + '/api/members')
     .then(function(r){ return r.json(); })
     .then(function(data){
-      if(Array.isArray(data)) members = data;
+      if(Array.isArray(data)) members = data.map(normalizeMember);
       // 移除待审批标记
       var m = members.find(function(x){ return String(x.id) === String(memberId); });
       if(m && m.dismissPending){ delete m.dismissPending; saveData(); }
@@ -2713,7 +2725,7 @@ function syncMemberData(){
     .then(function(r){ return r.json(); })
     .then(function(data){
       if(Array.isArray(data)){
-        members = data;
+        members = data.map(normalizeMember);
         saveDataLocal();
         // 同时同步消息
         syncMessagesFromCloud();

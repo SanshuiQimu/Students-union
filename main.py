@@ -194,6 +194,15 @@ def _load_members_from_supabase():
         })
     return result
 
+# 部门名兼容映射：旧名 → 新名（数据库中可能存有旧名，返回时自动转换）
+_DEPT_MAP = {'秘书处': '办公室', '社联会': '社团管理部'}
+def _normalize_dept(dept):
+    return _DEPT_MAP.get(dept, dept) if dept else dept
+def _normalize_member(m):
+    if isinstance(m, dict) and 'dept' in m:
+        m['dept'] = _normalize_dept(m['dept'])
+    return m
+
 @app.route('/api/members', methods=['GET'])
 def get_members():
     with _lock:
@@ -201,7 +210,7 @@ def get_members():
         if _use_supabase:
             data = _load_members_from_supabase()
             if data is not None:
-                return jsonify(data)
+                return jsonify([_normalize_member(m) for m in data])
         # 回退 SQLite
         if _use_pg:
             s = _Session()
@@ -209,12 +218,12 @@ def get_members():
                 rows = s.query(_Member).order_by(_Member.id).all()
             finally:
                 s.close()
-            return jsonify([json.loads(r.data) for r in rows])
+            return jsonify([_normalize_member(json.loads(r.data)) for r in rows])
         else:
             conn = _sqlite_db()
             rows = conn.execute("SELECT data FROM members ORDER BY id").fetchall()
             conn.close()
-            return jsonify([json.loads(r['data']) for r in rows])
+            return jsonify([_normalize_member(json.loads(r['data'])) for r in rows])
 
 @app.route('/api/members', methods=['POST'])
 def save_members():

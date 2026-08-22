@@ -1693,12 +1693,19 @@ function updateStats(){
 
 function getVisibleMembers(){
   const deptOrder = ['主席团','办公室','宣传部','体育部','生活部','纪检部','学习部','社团管理部'];
+  const posOrder = ['会长','副会长','处长','副处长','部长','副部长','部员'];
   return [...members].sort((a, b) => {
     const ia = deptOrder.indexOf(a.dept);
     const ib = deptOrder.indexOf(b.dept);
     const oa = ia === -1 ? 999 : ia;
     const ob = ib === -1 ? 999 : ib;
     if(oa !== ob) return oa - ob;
+    // 同部门内按职位排序：处长在副处长前，部长在副部长前
+    const pa = posOrder.indexOf(a.position);
+    const pb = posOrder.indexOf(b.position);
+    const opa = pa === -1 ? 999 : pa;
+    const opb = pb === -1 ? 999 : pb;
+    if(opa !== opb) return opa - opb;
     return (a.id || 0) - (b.id || 0);
   });
 }

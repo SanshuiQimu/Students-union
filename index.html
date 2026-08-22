@@ -147,7 +147,7 @@
   .search-box input{width:100%;padding:10px 16px 10px 40px;background:rgba(128,128,128,0.06);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;outline:none;transition:all .3s}
   .search-box input:focus{border-color:var(--gold);background:rgba(128,128,128,0.1)}
   .search-box input::placeholder{color:rgba(128,128,128,0.4)}
-  .search-box::before{content:'\1F50D';position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px}
+  .search-box::before{content:'';position:absolute;left:10px;top:50%;transform:translateY(-50%);width:16px;height:16px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48' fill='none' stroke='%23888' stroke-width='4' stroke-linejoin='round' stroke-linecap='round'%3E%3Ccircle cx='21' cy='21' r='17'/%3E%3Cpath d='M33.2216 33.2217L41.7069 41.707'/%3E%3C/svg%3E") center/contain no-repeat;opacity:0.5}
   .filter-group{display:flex;gap:8px;flex-wrap:wrap}
   .filter-btn{padding:8px 16px;background:rgba(128,128,128,0.04);border:1px solid var(--border);border-radius:8px;color:var(--text-secondary);font-size:12px;cursor:pointer;transition:all .3s}
   .filter-btn:hover,.filter-btn.active{background:rgba(226,176,74,0.1);border-color:rgba(226,176,74,0.3);color:var(--gold)}
@@ -169,9 +169,12 @@
   .dept-纪检部{background:rgba(252,129,129,0.12);color:#fc8181}
   .dept-生活部{background:rgba(72,187,187,0.12);color:#4fd1c5}
   .dept-社联会{background:rgba(159,122,234,0.12);color:#b794f4}
+  .dept-主席团{background:rgba(237,45,45,0.12);color:#ef4444}
   .position-tag{font-size:12px;font-weight:500;padding:4px 10px;border-radius:6px}
   .position-会长{background:rgba(237,45,45,0.15);color:#ef4444;border:1px solid rgba(237,45,45,0.25)}
+  .position-副会长{background:rgba(237,45,45,0.12);color:#f87171;border:1px solid rgba(237,45,45,0.2)}
   .position-处长{background:rgba(226,176,74,0.15);color:var(--gold);border:1px solid rgba(226,176,74,0.2)}
+  .position-副处长{background:rgba(226,176,74,0.12);color:#f0c060;border:1px solid rgba(226,176,74,0.15)}
   .position-部长{background:rgba(226,176,74,0.15);color:var(--gold);border:1px solid rgba(226,176,74,0.2)}
   .position-副部长{background:rgba(159,122,234,0.15);color:#b794f4;border:1px solid rgba(159,122,234,0.2)}
   .position-干事{background:rgba(128,128,128,0.06);color:var(--text-secondary);border:1px solid var(--border)}
@@ -390,12 +393,12 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
       <label style="font-size:13px;color:var(--text-secondary);display:block;margin-bottom:12px;letter-spacing:1px">选择身份</label>
       <div class="role-selector">
         <div class="role-btn active" onclick="selectRole('部长')">
-          <div class="role-icon">👔</div>
+          <div class="role-icon" style="display:flex;justify-content:center;align-items:center"><span id="roleIconMinister"></span></div>
           <div class="role-title">部长</div>
           <div class="role-desc">管理权限</div>
         </div>
         <div class="role-btn" onclick="selectRole('成员')">
-          <div class="role-icon">👤</div>
+          <div class="role-icon" style="display:flex;justify-content:center;align-items:center"><span id="roleIconMember"></span></div>
           <div class="role-title">成员</div>
           <div class="role-desc">查看权限</div>
         </div>
@@ -445,9 +448,9 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
       <div class="section-header">
         <div class="action-buttons" id="adminActions">
           <button class="btn btn-primary" id="addBtn" onclick="openModal('add')">＋ 添加成员</button>
-          <button class="btn btn-secondary" id="importBtnWrap" onclick="document.getElementById('importFile').click()">📥 导入Excel</button>
-          <button class="btn btn-secondary" id="exportBtnWrap" onclick="exportData()">📤 导出数据</button>
-          <button class="btn btn-secondary" id="syncBtnWrap" onclick="syncMemberData()">🔄 同步数据</button>
+          <button class="btn btn-secondary" id="importBtnWrap" onclick="document.getElementById('importFile').click()"><span id="iconImport"></span> 导入Excel</button>
+          <button class="btn btn-secondary" id="exportBtnWrap" onclick="exportData()"><span id="iconExport"></span> 导出数据</button>
+          <button class="btn btn-secondary" id="syncBtnWrap" onclick="syncMemberData()"><span id="iconSync"></span> 同步数据</button>
           <input type="file" id="importFile" accept=".xlsx,.xls,.csv" style="display:none" onchange="importExcel(event)">
         </div>
       </div>
@@ -489,7 +492,7 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
       <div class="table-container">
         <div class="table-toolbar" id="memberSearchBar" style="display:none">
           <div class="search-box" style="max-width:none"><input type="text" id="memberSearchInput" placeholder="搜索姓名、部门、职责..." oninput="renderTable()"></div>
-          <button class="btn btn-secondary" onclick="syncMemberData()">🔄 同步数据</button>
+          <button class="btn btn-secondary" onclick="syncMemberData()"><span id="iconSync2"></span> 同步数据</button>
         </div>
         <div style="overflow-x:auto">
           <table>
@@ -588,24 +591,24 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
       <span>消息通知</span>
       <div style="display:flex;align-items:center;gap:8px">
         <span class="badge-dot" id="settingsMsgBadge"></span>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="color:var(--text-secondary)"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        <svg viewBox="0 0 48 48" fill="none" width="18" height="18" style="color:var(--text-secondary)"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M19 12L31 24L19 36"/></svg>
       </div>
     </div>
     <div id="broadcastSettingItem" class="settings-item" style="cursor:pointer;display:none" onclick="openBroadcast()">
       <span>群发通知</span>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="color:var(--text-secondary)"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      <svg viewBox="0 0 48 48" fill="none" width="18" height="18" style="color:var(--text-secondary)"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M19 12L31 24L19 36"/></svg>
     </div>
     <div id="targetedMsgSettingItem" class="settings-item" style="cursor:pointer;display:none" onclick="openTargetedMsg()">
       <span>部门通知</span>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="color:var(--text-secondary)"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      <svg viewBox="0 0 48 48" fill="none" width="18" height="18" style="color:var(--text-secondary)"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M19 12L31 24L19 36"/></svg>
     </div>
     <div class="settings-item" style="cursor:pointer" onclick="openChangePwdFromSettings()">
       <span>修改密码</span>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="color:var(--text-secondary)"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      <svg viewBox="0 0 48 48" fill="none" width="18" height="18" style="color:var(--text-secondary)"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M19 12L31 24L19 36"/></svg>
     </div>
     <div class="settings-item" style="cursor:pointer" onclick="openBadgeApply()">
       <span>挂牌补办</span>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18" style="color:var(--text-secondary)"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      <svg viewBox="0 0 48 48" fill="none" width="18" height="18" style="color:var(--text-secondary)"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M19 12L31 24L19 36"/></svg>
     </div>
   </div>
 
@@ -624,8 +627,11 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
       <!-- 关于 -->
       <div class="settings-section">
         <div class="settings-header-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="28" height="28">
-            <circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>
+          <svg viewBox="0 0 48 48" fill="none" width="28" height="28">
+            <path fill="currentColor" stroke="currentColor" stroke-linejoin="round" stroke-width="4" d="M24 44C29.5228 44 34.5228 41.7614 38.1421 38.1421C41.7614 34.5228 44 29.5228 44 24C44 18.4772 41.7614 13.4772 38.1421 9.85786C34.5228 6.23858 29.5228 4 24 4C18.4772 4 13.4772 6.23858 9.85786 9.85786C6.23858 13.4772 4 18.4772 4 24C4 29.5228 6.23858 34.5228 9.85786 38.1421C13.4772 41.7614 18.4772 44 24 44Z"/>
+            <path fill="#fff" fill-rule="evenodd" d="M24 11C25.3807 11 26.5 12.1193 26.5 13.5C26.5 14.8807 25.3807 16 24 16C22.6193 16 21.5 14.8807 21.5 13.5C21.5 12.1193 22.6193 11 24 11Z" clip-rule="evenodd"/>
+            <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M24.5 34V20H23.5H22.5"/>
+            <path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M21 34H28"/>
           </svg>
         </div>
         <div class="settings-header-text">
@@ -636,11 +642,11 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
       <div class="settings-group">
         <div class="settings-item" style="cursor:pointer" onclick="openAboutPage()">
           <span>关于本系统</span>
-          <span style="color:var(--text-secondary);font-size:18px">›</span>
+          <svg viewBox="0 0 48 48" fill="none" width="18" height="18" style="color:var(--text-secondary)"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M19 12L31 24L19 36"/></svg>
         </div>
         <div class="settings-item" style="cursor:pointer" onclick="openUpdatePage()">
           <span id="updateEntryLabel">系统更新</span>
-          <span style="color:var(--text-secondary);font-size:18px">›</span>
+          <svg viewBox="0 0 48 48" fill="none" width="18" height="18" style="color:var(--text-secondary)"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M19 12L31 24L19 36"/></svg>
         </div>
       </div>
 
@@ -700,8 +706,11 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
     </div>
     <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-top:8px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" style="color:var(--gold)">
-          <path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 11-5.8-1.6"/>
+        <svg viewBox="0 0 48 48" fill="none" stroke-width="4" stroke-linejoin="round" width="20" height="20" style="color:var(--gold)">
+          <rect width="40" height="26" x="4" y="15" fill="currentColor" stroke="currentColor" rx="2"/>
+          <path fill="currentColor" stroke="currentColor" stroke-linecap="round" d="M24 7L16 15H32L24 7Z"/>
+          <path stroke="#fff" stroke-linecap="round" d="M12 24H30"/>
+          <path stroke="#fff" stroke-linecap="round" d="M12 32H20"/>
         </svg>
         <span style="font-size:15px;font-weight:600;color:var(--text)">发送通知给全体成员</span>
       </div>
@@ -725,8 +734,11 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
     </div>
     <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-top:8px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" style="color:var(--gold)">
-          <path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/>
+        <svg viewBox="0 0 48 48" fill="none" stroke-width="4" stroke-linejoin="round" width="20" height="20" style="color:var(--gold)">
+          <rect width="40" height="26" x="4" y="15" fill="currentColor" stroke="currentColor" rx="2"/>
+          <path fill="currentColor" stroke="currentColor" stroke-linecap="round" d="M24 7L16 15H32L24 7Z"/>
+          <path stroke="#fff" stroke-linecap="round" d="M12 24H30"/>
+          <path stroke="#fff" stroke-linecap="round" d="M12 32H20"/>
         </svg>
         <span style="font-size:15px;font-weight:600;color:var(--text)">发送通知给指定部门</span>
       </div>
@@ -845,34 +857,33 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
       <div class="dock-items-wrap">
         <!-- Tab1: Department -->
         <div class="dock-item" data-tab="0">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 9v-1a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v1z"/>
-            <path d="M3 11v5a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5z"/>
+          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M24 8L44 21V44H4L4 21L24 8Z"/>
+            <path d="M20 44V23L12 28L12 44"/>
+            <path d="M28 44V23L36 28L36 44"/>
+            <path d="M41 44H8"/>
           </svg><span id="dockTabLabel0">秘书处</span>
         </div>
         <!-- Tab2: Department Overview -->
         <div class="dock-item" data-tab="1">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="7" height="7" rx="1"/>
-            <rect x="14" y="3" width="7" height="7" rx="1"/>
-            <rect x="3" y="14" width="7" height="7" rx="1"/>
-            <rect x="14" y="14" width="7" height="7" rx="1"/>
+          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="38" height="38" x="5" y="5" rx="2"/>
+            <path d="M24 5V43"/>
+            <path d="M5 24H43"/>
           </svg><span>部门概览</span>
         </div>
         <!-- Tab3: Members List -->
         <div class="dock-item" data-tab="2">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M24 20C27.866 20 31 16.866 31 13C31 9.13401 27.866 6 24 6C20.134 6 17 9.13401 17 13C17 16.866 20.134 20 24 20Z"/>
+            <path d="M6 40.8V42H42V40.8C42 36.3196 42 34.0794 41.1281 32.3681C40.3611 30.8628 39.1372 29.6389 37.6319 28.8719C35.9206 28 33.6804 28 29.2 28H18.8C14.3196 28 12.0794 28 10.3681 28.8719C8.86278 29.6389 7.63893 30.8628 6.87195 32.3681C6 34.0794 6 36.3196 6 40.8Z"/>
           </svg><span>成员列表</span>
         </div>
         <!-- Tab4: Settings -->
         <div class="dock-item" data-tab="3">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-            <circle cx="12" cy="7" r="4"/>
+          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round">
+            <path d="M36.686 15.171C37.9364 16.9643 38.8163 19.0352 39.2147 21.2727H44V26.7273H39.2147C38.8163 28.9648 37.9364 31.0357 36.686 32.829L40.0706 36.2137L36.2137 40.0706L32.829 36.686C31.0357 37.9364 28.9648 38.8163 26.7273 39.2147V44H21.2727V39.2147C19.0352 38.8163 16.9643 37.9364 15.171 36.686L11.7863 40.0706L7.92939 36.2137L11.314 32.829C10.0636 31.0357 9.18372 28.9648 8.78533 26.7273H4V21.2727H8.78533C9.18372 19.0352 10.0636 16.9643 11.314 15.171L7.92939 11.7863L11.7863 7.92939L15.171 11.314C16.9643 10.0636 19.0352 9.18372 21.2727 8.78533V4H26.7273V8.78533C28.9648 9.18372 31.0357 10.0636 32.829 11.314L36.2137 7.92939L40.0706 11.7863L36.686 15.171Z"/>
+            <path d="M24 29C26.7614 29 29 26.7614 29 24C29 21.2386 26.7614 19 24 19C21.2386 19 19 21.2386 19 24C19 26.7614 21.2386 29 24 29Z"/>
           </svg><span>设置</span>
           <span class="badge-dot" id="dockBadge4"></span>
         </div>
@@ -882,31 +893,30 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
 
       <div class="dock-active-layer" id="active-mask">
         <div class="dock-item">
-          <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 9v-1a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v1z"/>
-            <path d="M3 11v5a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5z"/>
+          <svg viewBox="0 0 48 48" fill="currentColor" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+            <path fill="currentColor" fill-rule="evenodd" d="M24 8L44 21V44H4L4 21L24 8Z" clip-rule="evenodd"/>
+            <path stroke="#fff" d="M20 44V23L12 28L12 44"/>
+            <path stroke="#fff" d="M28 44V23L36 28L36 44"/>
+            <path d="M41 44H8"/>
           </svg><span>秘书处</span>
         </div>
         <div class="dock-item">
-          <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="7" height="7" rx="1"/>
-            <rect x="14" y="3" width="7" height="7" rx="1"/>
-            <rect x="3" y="14" width="7" height="7" rx="1"/>
-            <rect x="14" y="14" width="7" height="7" rx="1"/>
+          <svg viewBox="0 0 48 48" fill="currentColor" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="38" height="38" x="5" y="5" rx="2"/>
+            <path d="M24 5V43"/>
+            <path d="M5 24H43"/>
           </svg><span>部门概览</span>
         </div>
         <div class="dock-item">
-          <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          <svg viewBox="0 0 48 48" fill="currentColor" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+            <path fill="currentColor" d="M24 20C27.866 20 31 16.866 31 13C31 9.13401 27.866 6 24 6C20.134 6 17 9.13401 17 13C17 16.866 20.134 20 24 20Z"/>
+            <path fill="currentColor" d="M6 40.8V42H42V40.8C42 36.3196 42 34.0794 41.1281 32.3681C40.3611 30.8628 39.1372 29.6389 37.6319 28.8719C35.9206 28 33.6804 28 29.2 28H18.8C14.3196 28 12.0794 28 10.3681 28.8719C8.86278 29.6389 7.63893 30.8628 6.87195 32.3681C6 34.0794 6 36.3196 6 40.8Z"/>
           </svg><span>成员列表</span>
         </div>
         <div class="dock-item">
-          <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-            <circle cx="12" cy="7" r="4"/>
+          <svg viewBox="0 0 48 48" fill="currentColor" stroke="currentColor" stroke-width="4" stroke-linejoin="round">
+            <path fill="currentColor" d="M36.686 15.171C37.9364 16.9643 38.8163 19.0352 39.2147 21.2727H44V26.7273H39.2147C38.8163 28.9648 37.9364 31.0357 36.686 32.829L40.0706 36.2137L36.2137 40.0706L32.829 36.686C31.0357 37.9364 28.9648 38.8163 26.7273 39.2147V44H21.2727V39.2147C19.0352 38.8163 16.9643 37.9364 15.171 36.686L11.7863 40.0706L7.92939 36.2137L11.314 32.829C10.0636 31.0357 9.18372 28.9648 8.78533 26.7273H4V21.2727H8.78533C9.18372 19.0352 10.0636 16.9643 11.314 15.171L7.92939 11.7863L11.7863 7.92939L15.171 11.314C16.9643 10.0636 19.0352 9.18372 21.2727 8.78533V4H26.7273V8.78533C28.9648 9.18372 31.0357 10.0636 32.829 11.314L36.2137 7.92939L40.0706 11.7863L36.686 15.171Z"/>
+            <path fill="#fff" d="M24 29C26.7614 29 29 26.7614 29 24C29 21.2386 26.7614 19 24 19C21.2386 19 19 21.2386 19 24C19 26.7614 21.2386 29 24 29Z"/>
           </svg><span>设置</span>
         </div>
       </div>
@@ -927,13 +937,13 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
         <div class="form-group"><label>姓名</label><input type="text" id="fName" placeholder="成员姓名"></div>
         <div class="form-group"><label>部门</label>
           <select id="fDept"><option value="">选择部门</option>
-            <option>秘书处</option><option>学习部</option><option>体育部</option><option>宣传部</option><option>纪检部</option><option>生活部</option><option>社联会</option>
+            <option>秘书处</option><option>学习部</option><option>体育部</option><option>宣传部</option><option>纪检部</option><option>生活部</option><option>社联会</option><option>主席团</option>
           </select>
         </div>
       </div>
       <div class="form-row">
         <div class="form-group"><label>职位</label>
-          <select id="fPosition"><option value="">选择职位</option><option>会长</option><option>处长</option><option>部长</option><option>副部长</option><option>干事</option></select>
+          <select id="fPosition"><option value="">选择职位</option><option>会长</option><option>副会长</option><option>处长</option><option>副处长</option><option>部长</option><option>副部长</option><option>干事</option></select>
         </div>
         <div class="form-group"><label>入职时间</label><input type="date" id="fJoinDate"></div>
       </div>
@@ -962,10 +972,10 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
 <!-- ===== CHANGE PASSWORD MODAL ===== -->
 <div class="modal-overlay" id="changePwdModal">
   <div class="modal" style="max-width:420px">
-    <div class="modal-header"><h2>🔒 修改密码</h2><button class="modal-close" onclick="closeChangePwd()">&times;</button></div>
+    <div class="modal-header"><h2><span id="iconLock" style="display:inline-flex;vertical-align:middle;margin-right:6px"></span>修改密码</h2><button class="modal-close" onclick="closeChangePwd()">&times;</button></div>
     <div class="modal-body">
       <div id="changePwdHint" style="background:rgba(226,176,74,0.12);border:1px solid rgba(226,176,74,0.3);border-radius:10px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#e2b04a;line-height:1.6">
-        ⚠️ 您的当前密码过于简单，为了账户安全，请修改密码后再继续使用。
+        <span id="iconAttention" style="display:inline-flex;vertical-align:middle;margin-right:6px"></span>您的当前密码过于简单，为了账户安全，请修改密码后再继续使用。
       </div>
       <div class="form-group">
         <label>原密码</label>
@@ -990,6 +1000,42 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
+// ===== IconPark SVG Icons (from iconpark.oceanengine.com/official) =====
+const _ipIcons = {
+  'clipboard':'<g fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="4"><path stroke-linecap="round" d="M17 7H16H10C8.89543 7 8 7.89543 8 9L8 42C8 43.1046 8.89543 44 10 44H38C39.1046 44 40 43.1046 40 42V9C40 7.89543 39.1046 7 38 7H33.0499H31"/><rect width="14" height="6" x="17" y="4" fill="currentColor"/></g>',
+  'book-open':'<g fill="currentColor" stroke="currentColor" stroke-linejoin="round" stroke-width="4"><path d="M5 7H16C20.4183 7 24 10.5817 24 15V42C24 38.6863 21.3137 36 18 36H5V7Z"/><path d="M43 7H32C27.5817 7 24 10.5817 24 15V42C24 38.6863 26.6863 36 30 36H43V7Z"/></g>',
+  'football':'<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"><path d="M24 44C35.0457 44 44 35.0457 44 24C44 12.9543 35.0457 4 24 4C12.9543 4 4 12.9543 4 24C4 35.0457 12.9543 44 24 44Z"/><path d="M30.0926 6.5L24.0693 10.859V15.2179L31.8135 21.3205L36.1158 19.5769L38.6972 12.6026"/><path d="M18.0461 6.5L24.0693 10.859V15.2179L16.3251 21.3205L12.0228 19.5769L9.44141 12.6026"/><path d="M6 22.1923L12.0233 19.5769L16.3256 21.3205L18.907 30.9102L16.3256 34.3974H8.5814"/><path d="M16.3252 40.4999V34.3973L18.9066 30.9102H29.2322L31.8136 34.3973V40.4999"/><path d="M39.558 34.3974H31.8138L29.2324 30.9102L31.8138 21.3205L36.1161 19.5769L42.9999 23.0641"/></g>',
+  'trumpet':'<g fill="none" stroke="currentColor" stroke-width="4"><path fill="currentColor" d="M32 28H38V39C38 40.6569 36.6569 42 35 42C33.3431 42 32 40.6569 32 39V28Z"/><path stroke-linecap="round" d="M29 12H39C40.6569 12 42 13.3431 42 15V25C42 26.6569 40.6569 28 39 28H28"/><path stroke-linejoin="round" d="M14 14H12C8.68629 14 6 16.6863 6 20C6 23.3137 8.68629 26 12 26H14"/><path fill="currentColor" d="M14.1984 33C14.0888 33 14 32.9112 14 32.8016L14 6.19844C14 6.08885 14.0888 6 14.1984 6L17.5 6C24.9558 6 31 12.0442 31 19.5C31 26.9558 24.9558 33 17.5 33L14.1984 33Z"/></g>',
+  'check-one':'<g fill="none" stroke-linejoin="round" stroke-width="4"><path fill="currentColor" stroke="currentColor" d="M24 44C29.5228 44 34.5228 41.7614 38.1421 38.1421C41.7614 34.5228 44 29.5228 44 24C44 18.4772 41.7614 13.4772 38.1421 9.85786C34.5228 6.23858 29.5228 4 24 4C18.4772 4 13.4772 6.23858 9.85786 9.85786C6.23858 13.4772 4 18.4772 4 24C4 29.5228 6.23858 34.5228 9.85786 38.1421C13.4772 41.7614 18.4772 44 24 44Z"/><path stroke="#fff" stroke-linecap="round" d="M16 24L22 30L34 18"/></g>',
+  'home-two':'<g fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="4"><path fill="currentColor" d="M44 44V20L24 4L4 20L4 44H16V26H32V44H44Z"/><path stroke-linecap="round" d="M24 44V34"/></g>',
+  'cooperative-handshake':'<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"><path d="M24 40L36 28L32 32L28 36L24 40ZM24 40L4 20L16 8L24 16"/><path d="M17 23L32 8L44 20L36 28L28 20L22 26L17 23ZM17 23L24 16"/><path d="M28 36L25 33"/><path d="M32 32L29 29"/></g>',
+  'crown':'<g fill="none" stroke-linejoin="round" stroke-width="4"><path fill="currentColor" stroke="currentColor" d="M9 40L4 17L14 22L24 8L34 22L44 17L39 40H9Z"/><circle cx="24" cy="29" r="4" fill="none" stroke="#fff" stroke-width="4"/></g>',
+  'people':'<g fill="currentColor" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"><path d="M24 20C27.866 20 31 16.866 31 13C31 9.13401 27.866 6 24 6C20.134 6 17 9.13401 17 13C17 16.866 20.134 20 24 20Z"/><path d="M6 40.8V42H42V40.8C42 36.3196 42 34.0794 41.1281 32.3681C40.3611 30.8628 39.1372 29.6389 37.6319 28.8719C35.9206 28 33.6804 28 29.2 28H18.8C14.3196 28 12.0794 28 10.3681 28.8719C8.86278 29.6389 7.63893 30.8628 6.87195 32.3681C6 34.0794 6 36.3196 6 40.8Z"/></g>',
+  'peoples':'<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"><path fill="currentColor" d="M19 20C22.866 20 26 16.866 26 13C26 9.13401 22.866 6 19 6C15.134 6 12 9.13401 12 13C12 16.866 15.134 20 19 20Z"/><path d="M32.6077 7C34.6405 8.2249 36.0001 10.4537 36.0001 13C36.0001 15.5463 34.6405 17.7751 32.6077 19"/><path fill="currentColor" d="M4 40.8V42H34V40.8C34 36.3196 34 34.0794 33.1281 32.3681C32.3611 30.8628 31.1372 29.6389 29.6319 28.8719C27.9206 28 25.6804 28 21.2 28H16.8C12.3196 28 10.0794 28 8.36808 28.8719C6.86278 29.6389 5.63893 30.8628 4.87195 32.3681C4 34.0794 4 36.3196 4 40.8Z"/><path d="M43.9999 42.0001V40.8001C43.9999 36.3197 43.9999 34.0795 43.128 32.3682C42.361 30.8629 41.1371 29.6391 39.6318 28.8721"/></g>',
+  'edit':'<g fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="4"><path stroke-linecap="round" d="M7 42H43"/><path fill="currentColor" d="M11 26.7199V34H18.3172L39 13.3081L31.6951 6L11 26.7199Z"/></g>',
+  'key':'<g fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="4"><path fill="currentColor" d="M22.8682 24.2982C25.4105 26.7935 26.4138 30.4526 25.4971 33.8863C24.5805 37.32 21.8844 40.0019 18.4325 40.9137C14.9806 41.8256 11.3022 40.8276 8.79375 38.2986C5.02208 34.4141 5.07602 28.2394 8.91499 24.4206C12.754 20.6019 18.9613 20.5482 22.8664 24.3L22.8682 24.2982Z"/><path stroke-linecap="round" d="M23 24L40 7"/><path fill="currentColor" d="M30.3052 16.9001L35.7337 22.3001L42.0671 16.0001L36.6385 10.6001L30.3052 16.9001Z"/></g>',
+  'lock':'<g fill="none" stroke-linejoin="round" stroke-width="4"><rect width="36" height="22" x="6" y="22" fill="currentColor" stroke="currentColor" rx="2"/><path stroke="currentColor" stroke-linecap="round" d="M14 22V14C14 8.47715 18.4772 4 24 4C29.5228 4 34 8.47715 34 14V22"/><path stroke="#fff" stroke-linecap="round" d="M24 30V36"/></g>',
+  'attention':'<g fill="none"><path fill="currentColor" stroke="currentColor" stroke-linejoin="round" stroke-width="4" d="M24 44C29.5228 44 34.5228 41.7614 38.1421 38.1421C41.7614 34.5228 44 29.5228 44 24C44 18.4772 41.7614 13.4772 38.1421 9.85786C34.5228 6.23858 29.5228 4 24 4C18.4772 4 13.4772 6.23858 9.85786 9.85786C6.23858 13.4772 4 18.4772 4 24C4 29.5228 6.23858 34.5228 9.85786 38.1421C13.4772 41.7614 18.4772 44 24 44Z"/><path fill="#fff" fill-rule="evenodd" d="M24 37C25.3807 37 26.5 35.8807 26.5 34.5C26.5 33.1193 25.3807 32 24 32C22.6193 32 21.5 33.1193 21.5 34.5C21.5 35.8807 22.6193 37 24 37Z" clip-rule="evenodd"/><path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M24 12V28"/></g>',
+  'info':'<g fill="none"><path fill="currentColor" stroke="currentColor" stroke-linejoin="round" stroke-width="4" d="M24 44C29.5228 44 34.5228 41.7614 38.1421 38.1421C41.7614 34.5228 44 29.5228 44 24C44 18.4772 41.7614 13.4772 38.1421 9.85786C34.5228 6.23858 29.5228 4 24 4C18.4772 4 13.4772 6.23858 9.85786 9.85786C6.23858 13.4772 4 18.4772 4 24C4 29.5228 6.23858 34.5228 9.85786 38.1421C13.4772 41.7614 18.4772 44 24 44Z"/><path fill="#fff" fill-rule="evenodd" d="M24 11C25.3807 11 26.5 12.1193 26.5 13.5C26.5 14.8807 25.3807 16 24 16C22.6193 16 21.5 14.8807 21.5 13.5C21.5 12.1193 22.6193 11 24 11Z" clip-rule="evenodd"/><path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M24.5 34V20H23.5H22.5"/><path stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M21 34H28"/></g>',
+  'right':'<path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M19 12L31 24L19 36"/>',
+  'grid-four':'<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"><rect width="38" height="38" x="5" y="5" rx="2"/><path d="M24 5V43"/><path d="M5 24H43"/></g>',
+  'building-three':'<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"><path fill="currentColor" fill-rule="evenodd" stroke="currentColor" d="M24 8L44 21V44H4L4 21L24 8Z" clip-rule="evenodd"/><path stroke="#fff" d="M20 44V23L12 28L12 44"/><path stroke="#fff" d="M28 44V23L36 28L36 44"/><path stroke="currentColor" d="M41 44H8"/></g>',
+  'download':'<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"><path d="M6 24.0083V42H42V24"/><path d="M33 23L24 32L15 23"/><path d="M23.9917 6V32"/></g>',
+  'upload':'<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"><path d="M6 24.0083V42H42V24"/><path d="M33 15L24 6L15 15"/><path d="M23.9917 32V6"/></g>',
+  'delete':'<g fill="none" stroke-linejoin="round" stroke-width="4"><path fill="currentColor" stroke="currentColor" d="M9 10V44H39V10H9Z"/><path stroke="#fff" stroke-linecap="round" d="M20 20V33"/><path stroke="#fff" stroke-linecap="round" d="M28 20V33"/><path stroke="currentColor" stroke-linecap="round" d="M4 10H44"/><path fill="currentColor" stroke="currentColor" d="M16 10L19.289 4H28.7771L32 10H16Z"/></g>',
+  'refresh':'<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"><path d="M42 8V24"/><path d="M6 24L6 40"/><path d="M42 24C42 14.0589 33.9411 6 24 6C18.9145 6 14.3216 8.10896 11.0481 11.5M6 24C6 33.9411 14.0589 42 24 42C28.8556 42 33.2622 40.0774 36.5 36.9519"/></g>',
+  'search':'<g fill="none" stroke-linejoin="round" stroke-width="4"><path fill="currentColor" stroke="currentColor" d="M21 38C30.3888 38 38 30.3888 38 21C38 11.6112 30.3888 4 21 4C11.6112 4 4 11.6112 4 21C4 30.3888 11.6112 38 21 38Z"/><path stroke="#fff" stroke-linecap="round" d="M26.657 14.3431C25.2093 12.8954 23.2093 12 21.0001 12C18.791 12 16.791 12.8954 15.3433 14.3431"/><path stroke="currentColor" stroke-linecap="round" d="M33.2216 33.2217L41.7069 41.707"/></g>',
+  'message':'<g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"><path fill="currentColor" stroke="currentColor" d="M44.0001 24C44.0001 35.0457 35.0458 44 24.0001 44C18.0266 44 4.00006 44 4.00006 44C4.00006 44 4.00006 29.0722 4.00006 24C4.00006 12.9543 12.9544 4 24.0001 4C35.0458 4 44.0001 12.9543 44.0001 24Z"/><path stroke="#fff" d="M14 18L32 18"/><path stroke="#fff" d="M14 26H32"/><path stroke="#fff" d="M14 34H24"/></g>',
+  'setting':'<g fill="none" stroke-linejoin="round" stroke-width="4"><path fill="currentColor" stroke="currentColor" d="M36.686 15.171C37.9364 16.9643 38.8163 19.0352 39.2147 21.2727H44V26.7273H39.2147C38.8163 28.9648 37.9364 31.0357 36.686 32.829L40.0706 36.2137L36.2137 40.0706L32.829 36.686C31.0357 37.9364 28.9648 38.8163 26.7273 39.2147V44H21.2727V39.2147C19.0352 38.8163 16.9643 37.9364 15.171 36.686L11.7863 40.0706L7.92939 36.2137L11.314 32.829C10.0636 31.0357 9.18372 28.9648 8.78533 26.7273H4V21.2727H8.78533C9.18372 19.0352 10.0636 16.9643 11.314 15.171L7.92939 11.7863L11.7863 7.92939L15.171 11.314C16.9643 10.0636 19.0352 9.18372 21.2727 8.78533V4H26.7273V8.78533C28.9648 9.18372 31.0357 10.0636 32.829 11.314L36.2137 7.92939L40.0706 11.7863L36.686 15.171Z"/><path fill="none" stroke="#fff" d="M24 29C26.7614 29 29 26.7614 29 24C29 21.2386 26.7614 19 24 19C21.2386 19 19 21.2386 19 24C19 26.7614 21.2386 29 24 29Z"/></g>',
+  'list':'<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"><path d="M5 10L8 13L14 7"/><path d="M5 24L8 27L14 21"/><path d="M5 38L8 41L14 35"/><path d="M21 24H43"/><path d="M21 38H43"/><path d="M21 10H43"/></g>',
+  'user':'<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"><circle cx="24" cy="12" r="8" fill="currentColor"/><path d="M42 44C42 34.0589 33.9411 26 24 26C14.0589 26 6 34.0589 6 44"/></g>',
+  'announcement':'<g fill="none" stroke-linejoin="round" stroke-width="4"><rect width="40" height="26" x="4" y="15" fill="currentColor" stroke="currentColor" rx="2"/><path fill="currentColor" stroke="currentColor" stroke-linecap="round" d="M24 7L16 15H32L24 7Z"/><path stroke="#fff" stroke-linecap="round" d="M12 24H30"/><path stroke="#fff" stroke-linecap="round" d="M12 32H20"/></g>',
+};
+function ipIcon(name, size) {
+  const body = _ipIcons[name] || _ipIcons['list'];
+  return '<svg viewBox="0 0 48 48" width="' + (size||24) + '" height="' + (size||24) + '" fill="none">' + body + '</svg>';
+}
+
 // ===== DATA =====
 const STORAGE_KEY = 'su_members_data_v4';
 const DEFAULT_DATA = [
@@ -1243,7 +1289,7 @@ function doLogin(user, passHash){
 
 function _setupLoginSession(found, isDefaultPwd){
   // 角色权限验证
-  const isMinister = found.position === '会长' || found.position === '处长' || found.position === '部长' || found.position === '副部长';
+  const isMinister = found.position === '会长' || found.position === '副会长' || found.position === '处长' || found.position === '副处长' || found.position === '部长' || found.position === '副部长';
   if(isMinister && selectedRole === '成员'){
     const err = document.getElementById('loginError');
     err.textContent = '您的身份为' + found.position + '，请选择"部长"身份登录';
@@ -1262,9 +1308,9 @@ function _setupLoginSession(found, isDefaultPwd){
   if(selectedRole === '成员'){
     currentUser = {name:found.name, role:'成员', dept:found.dept, position:found.position, isAdmin:false, isDeptAdmin:false, isMember:true};
   } else {
-    const isPresident = found.position === '会长';
-    const isSecretaryAdmin = isPresident || (found.dept === '秘书处' && (found.position === '处长' || found.position === '部长'));
-    const isDeptMinister = found.position === '处长' || found.position === '部长' || found.position === '副部长';
+    const isPresident = found.position === '会长' || found.position === '副会长';
+    const isSecretaryAdmin = isPresident || (found.dept === '秘书处' && (found.position === '处长' || found.position === '副处长' || found.position === '部长'));
+    const isDeptMinister = found.position === '处长' || found.position === '副处长' || found.position === '部长' || found.position === '副部长' || found.position === '副会长';
     currentUser = {
       name: found.name, role: found.position, dept: found.dept, position: found.position,
       isAdmin: isSecretaryAdmin,
@@ -1453,6 +1499,23 @@ window.addEventListener('popstate', function(e){
 
 // 页面加载时初始化 history 栈
 (function(){
+  // 初始化IconPark角色图标
+  var ri = document.getElementById('roleIconMinister');
+  var rm = document.getElementById('roleIconMember');
+  if(ri) ri.innerHTML = ipIcon('peoples', 24);
+  if(rm) rm.innerHTML = ipIcon('user', 24);
+  // 初始化IconPark按钮图标
+  var _iconInit = function(id, name, sz) {
+    var el = document.getElementById(id);
+    if(el) { el.innerHTML = ipIcon(name, sz||14); el.style.display='inline-flex'; el.style.verticalAlign='middle'; el.style.marginRight='4px'; }
+  };
+  _iconInit('iconImport','download',14);
+  _iconInit('iconExport','upload',14);
+  _iconInit('iconSync','refresh',14);
+  _iconInit('iconSync2','refresh',14);
+  _iconInit('iconLock','lock',18);
+  _iconInit('iconAttention','attention',16);
+
   history.pushState(null, '', location.href);
   // 尝试自动登录
   setTimeout(function(){
@@ -1623,9 +1686,9 @@ function getVisibleMembers(){
 function renderDeptGrid(){
   const list = getVisibleMembers();
   const depts = [...new Set(list.map(m => m.dept))];
-  const colors = {'秘书处':'#e2b04a','学习部':'#4299e1','体育部':'#48bb78','宣传部':'#ed8936','纪检部':'#fc8181','生活部':'#4fd1c5','社联会':'#9f7aea'};
-  const icons = {'秘书处':'📋','学习部':'📚','体育部':'⚽','宣传部':'📢','纪检部':'✅','生活部':'🏠','社联会':'🤝'};
-  const descs = {'秘书处':'统筹协调，中枢管理','学习部':'学风建设，学术交流','体育部':'体育赛事，强身健体','宣传部':'宣传推广，形象建设','纪检部':'纪律检查，考勤管理','生活部':'生活服务，环境建设','社联会':'社团管理，活动统筹'};
+  const colors = {'秘书处':'#e2b04a','学习部':'#4299e1','体育部':'#48bb78','宣传部':'#ed8936','纪检部':'#fc8181','生活部':'#4fd1c5','社联会':'#9f7aea','主席团':'#ef4444'};
+  const icons = {'秘书处':'clipboard','学习部':'book-open','体育部':'football','宣传部':'trumpet','纪检部':'check-one','生活部':'home-two','社联会':'cooperative-handshake','主席团':'crown'};
+  const descs = {'秘书处':'统筹协调，中枢管理','学习部':'学风建设，学术交流','体育部':'体育赛事，强身健体','宣传部':'宣传推广，形象建设','纪检部':'纪律检查，考勤管理','生活部':'生活服务，环境建设','社联会':'社团管理，活动统筹','主席团':'主席团统筹，领导决策'};
   const total = list.length;
   document.getElementById('deptGrid').innerHTML = depts.map(d => {
     const count = list.filter(m => m.dept === d).length;
@@ -1633,7 +1696,7 @@ function renderDeptGrid(){
     const c = colors[d]||'#888';
     return `<div class="dept-card" onclick="filterByDept('${d}');switchTab(0);">
       <div class="dept-card-header">
-        <div class="dept-card-icon" style="background:${c}22;color:${c}">${icons[d]||'📁'}</div>
+        <div class="dept-card-icon" style="background:${c}22;color:${c}">${ipIcon(icons[d]||'list', 20)}</div>
         <div class="dept-card-count">${count}</div>
       </div>
       <div class="dept-card-name">${d}</div>
@@ -1708,9 +1771,9 @@ function renderTable(){
         ? `<td style="color:var(--text-secondary);font-size:13px"><span style="opacity:.7">用户名：</span>${m.name} <span style="opacity:.5;margin-left:2px">/ 密码：已加密</span></td>`
         : (showAdmin ? `<td style="color:rgba(128,128,128,0.3);font-size:13px">******</td>` : '');
       const actionCell = canManage(m) ? `<td><div class="actions-cell">
-          <button class="icon-btn" title="编辑" onclick="openModal('edit',${m.id})">✏</button>
-          <button class="icon-btn" title="重置密码" onclick="confirmResetPwd(${m.id},'${m.name}')">🔑</button>
-          <button class="icon-btn delete" title="开除" onclick="confirmDelete(${m.id},'${m.name}')">🗑</button>
+          <button class="icon-btn" title="编辑" onclick="openModal('edit',${m.id})">${ipIcon('edit',14)}</button>
+          <button class="icon-btn" title="重置密码" onclick="confirmResetPwd(${m.id},'${m.name}')">${ipIcon('key',14)}</button>
+          <button class="icon-btn delete" title="开除" onclick="confirmDelete(${m.id},'${m.name}')">${ipIcon('delete',14)}</button>
         </div></td>` : (showAdmin ? '<td></td>' : '');
       const dismissTag = m.dismissPending ? '<span style="font-size:11px;color:var(--warning);margin-left:4px;background:rgba(245,158,11,0.1);padding:2px 6px;border-radius:4px">开除申请待审批</span>' : '';
       return `<tr>
@@ -2258,7 +2321,7 @@ function renderVersionList(){
     html += '<div style="font-size:15px;font-weight:500;color:var(--text)">华高学生会 ' + v.version + ' 主要更新' + _verTagHTML(v.tag) + '</div>';
     html += '<div style="font-size:13px;color:var(--text-secondary);margin-top:4px">' + (v.date || '') + (isCurrent ? ' · 当前版本' : '') + '</div>';
     html += '</div>';
-    html += '<span style="color:var(--text-secondary);font-size:18px">›</span>';
+    html += '<svg viewBox="0 0 48 48" fill="none" width="18" height="18" style="color:var(--text-secondary)"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M19 12L31 24L19 36"/></svg>';
     html += '</div>';
   });
   listEl.innerHTML = html;

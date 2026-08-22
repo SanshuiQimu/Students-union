@@ -2113,7 +2113,7 @@ function updateMsgBadge(){
 }
 function sendMsg(to, title, body, operatorName, operatorDept, type, applicantName, memberId){
   var msgs = loadMessages();
-  msgs.push({
+  var newMsg = {
     id: msgs.length ? Math.max.apply(null, msgs.map(function(m){return m.id})) + 1 : 1,
     to: to,
     title: title,
@@ -2125,8 +2125,15 @@ function sendMsg(to, title, body, operatorName, operatorDept, type, applicantNam
     type: type || 'info',
     applicant: applicantName || '',
     memberId: memberId || 0
-  });
-  saveMessages(msgs);
+  };
+  msgs.push(newMsg);
+  localStorage.setItem(MSG_KEY, JSON.stringify(msgs));
+  // 追加单条消息到服务器（不覆盖已有消息）
+  fetch(API_BASE + '/api/messages/add', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(newMsg)
+  }).catch(function(){});
 }
 
 function openBroadcast(){
@@ -2557,7 +2564,13 @@ function markAllRead(){
   allMsgs.forEach(function(m){
     if(m.to === currentUser.name) m.read = true;
   });
-  saveMessages(allMsgs);
+  localStorage.setItem(MSG_KEY, JSON.stringify(allMsgs));
+  // 服务器端标记已读（不影响其他用户消息）
+  fetch(API_BASE + '/api/messages/read', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({user: currentUser.name})
+  }).catch(function(){});
 }
 var _msgPage = null;
 function getMsgPage(){ if(!_msgPage) _msgPage = document.getElementById('msgPage'); return _msgPage; }
@@ -2613,10 +2626,15 @@ function renderMessages(){
 
 // 审批挂牌补办
 function handleBadgeApprove(applicantName, msgId){
-  // 标记消息已处理
+  // 标记消息已处理（服务器端单条更新）
   var msgs = loadMessages();
   msgs.forEach(function(m){ if(String(m.id) === String(msgId)) m.handled = true; });
-  saveMessages(msgs);
+  localStorage.setItem(MSG_KEY, JSON.stringify(msgs));
+  fetch(API_BASE + '/api/messages/handle', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({msgId: msgId})
+  }).catch(function(){});
   // 通知申请人
   sendMsg(applicantName,
     '挂牌补办申请已通过',
@@ -2630,7 +2648,12 @@ function handleBadgeApprove(applicantName, msgId){
 function handleBadgeReject(applicantName, msgId){
   var msgs = loadMessages();
   msgs.forEach(function(m){ if(String(m.id) === String(msgId)) m.handled = true; });
-  saveMessages(msgs);
+  localStorage.setItem(MSG_KEY, JSON.stringify(msgs));
+  fetch(API_BASE + '/api/messages/handle', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({msgId: msgId})
+  }).catch(function(){});
   sendMsg(applicantName,
     '挂牌补办申请已驳回',
     '你的挂牌补办申请已驳回。',
@@ -2723,7 +2746,12 @@ function handleDismissReject(applicantName, memberId, msgId){
 function markMsgHandled(msgId){
   var msgs = loadMessages();
   msgs.forEach(function(m){ if(String(m.id) === String(msgId)) m.handled = true; });
-  saveMessages(msgs);
+  localStorage.setItem(MSG_KEY, JSON.stringify(msgs));
+  fetch(API_BASE + '/api/messages/handle', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({msgId: msgId})
+  }).catch(function(){});
 }
 
 // ===== 同步成员数据 =====

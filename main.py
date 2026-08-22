@@ -366,6 +366,111 @@ def save_messages():
             conn.close()
     return jsonify({"ok": True})
 
+@app.route('/api/messages/add', methods=['POST'])
+def add_message():
+    """追加单条消息，不影响已有消息（解决并发全量覆盖丢失问题）"""
+    msg = request.get_json(force=True)
+    if not isinstance(msg, dict):
+        return jsonify({"error": "expected object"}), 400
+    with _lock:
+        if _use_pg:
+            s = _Session()
+            try:
+                s.add(_Message(data=json.dumps(msg, ensure_ascii=False)))
+                s.commit()
+            finally:
+                s.close()
+        else:
+            conn = _sqlite_db()
+            conn.execute("INSERT INTO messages (data) VALUES (?)", (json.dumps(msg, ensure_ascii=False),))
+            conn.commit()
+            conn.close()
+    return jsonify({"ok": True})
+
+@app.route('/api/messages/read', methods=['POST'])
+def mark_messages_read():
+    """标记某用户的全部消息为已读，不影响其他用户消息"""
+    data = request.get_json(force=True)
+    if not isinstance(data, dict) or 'user' not in data:
+        return jsonify({"error": "missing user"}), 400
+    user = data['user']
+    with _lock:
+        if _use_pg:
+            s = _Session()
+            try:
+                rows = s.query(_Message).order_by(_Message.id).all()
+                changed = False
+                for r in rows:
+                    try:
+                        m = json.loads(r.data)
+                        if m.get('to') == user and not m.get('read'):
+                            m['read'] = True
+                            r.data = json.dumps(m, ensure_ascii=False)
+                            changed = True
+                    except Exception:
+                        pass
+                if changed:
+                    s.commit()
+            finally:
+                s.close()
+        else:
+            conn = _sqlite_db()
+            rows = conn.execute("SELECT id, data FROM messages ORDER BY id").fetchall()
+            for row in rows:
+                try:
+                    m = json.loads(row['data'])
+                    if m.get('to') == user and not m.get('read'):
+                        m['read'] = True
+                        conn.execute("UPDATE messages SET data=? WHERE id=?", (json.dumps(m, ensure_ascii=False), row['id']))
+                except Exception:
+                    pass
+            conn.commit()
+            conn.close()
+    return jsonify({"ok": True})
+
+@app.route('/api/messages/handle', methods=['POST'])
+def mark_message_handled():
+    """标记单条消息为已处理，不影响其他消息"""
+    data = request.get_json(force=True)
+    if not isinstance(data, dict) or 'msgId' not in data:
+        return jsonify({"error": "missing msgId"}), 400
+    msg_id = str(data['msgId'])
+    with _lock:
+        if _use_pg:
+            s = _Session()
+            try:
+                rows = s.query(_Message).order_by(_Message.id).all()
+                changed = False
+                for r in rows:
+                    try:
+                        m = json.loads(r.data)
+                        if str(m.get('id')) == msg_id:
+                            m['handled'] = True
+                            r.data = json.dumps(m, ensure_ascii=False)
+                            changed = True
+                            break
+                    except Exception:
+                        pass
+                if changed:
+                    s.commit()
+            finally:
+                s.close()
+        else:
+            conn = _sqlite_db()
+            rows = conn.execute("SELECT id, data FROM messages ORDER BY id").fetchall()
+            for row in rows:
+                try:
+                    m = json.loads(row['data'])
+                    if str(m.get('id')) == msg_id:
+                        m['handled'] = True
+                        conn.execute("UPDATE messages SET data=? WHERE id=?", (json.dumps(m, ensure_ascii=False), row['id']))
+                        break
+                except Exception:
+                    pass
+            conn.commit()
+            conn.close()
+    return jsonify({"ok": True})
+
 # ===== SUPABASE AUTH =====
 import hashlib, secrets, urllib.request, urllib.error
 
@@ -618,6 +723,7 @@ def _save_versions(versions):
 def _default_versions():
     """全部历史版本数据"""
     return [
+        {"version":"3.0.330.8","versionCode":3308,"date":"2026-08-22","tag":"正式版公开","changelog":["修复消息通知模块：消息发送改为追加模式，不再全量覆盖导致消息丢失","修复底部小白条沉浸：内容延伸到底部导航栏后方，同时小白条保持透明可见","修复版本检测：修正Android注入版本号参数顺序，检测更新和版本号显示恢复正常"],"downloadUrl":"/api/download/apk?vc=3308"},
         {"version":"3.0.330.7","versionCode":3307,"date":"2026-08-22","tag":"正式版公开","changelog":["修复全屏沉浸模式：内容延伸至状态栏后方，顶部沉浸效果修复","底部导航栏小白条保持可见，不隐藏系统手势导航","状态栏与导航栏透明，刘海屏挖孔屏适配","修复APK下载失败问题","修复部门名称规范化（秘书处→办公室）"],"downloadUrl":"/api/download/apk?vc=3307"},
         {"version":"3.0.330.0","versionCode":3300,"date":"2026-08-22","tag":"正式版公开","changelog":["新增主席团部门","新增副处长、副会长职位","全站图标统一采用IconPark图标库(iconpark.oceanengine.com/official)","校徽logo与外观设置图标除外","权限逻辑同步更新，副会长享有主席团管理权限，副处长享有办公室管理权限","干事更名为部员","秘书处更名为办公室，社联会更名为社团管理部","成员列表全部自动按部门顺序排序：主席团、办公室、宣传部、体育部、生活部、纪检部、学习部、社团管理部","点击关于本系统跳转至os3.ssqm.top","修复APK闪退问题：运行时权限请求、通知通道、错误页面、进度条、主题注入","修复了已知问题，提升系统流畅度"],"downloadUrl":"/api/download/apk?vc=3300"},
         {"version":"3.0.310.7","versionCode":3107,"date":"2026-07-22","tag":"正式版公开","changelog":["域名更换为xsh.ssqm.top","开除审批流程：提交开除申请至秘书部审批","秘书部消息界面通过/驳回开除申请","待审批期间成员名后显示开除申请待审批标签","审批通过后多端同步删除成员(含Supabase云端)","新增同步数据按钮(所有成员可见)","二级界面退出后保留滚动位置","版本号由Android端实际注入"],"downloadUrl":"/api/download/apk"},

@@ -199,8 +199,11 @@ _DEPT_MAP = {'秘书处': '办公室', '社联会': '社团管理部'}
 def _normalize_dept(dept):
     return _DEPT_MAP.get(dept, dept) if dept else dept
 def _normalize_member(m):
-    if isinstance(m, dict) and 'dept' in m:
-        m['dept'] = _normalize_dept(m['dept'])
+    if isinstance(m, dict):
+        if 'dept' in m:
+            m['dept'] = _normalize_dept(m['dept'])
+        if 'concurrentDept' in m:
+            m['concurrentDept'] = _normalize_dept(m['concurrentDept'])
     return m
 
 @app.route('/api/members', methods=['GET'])
@@ -573,6 +576,8 @@ def auth_login():
     # 规范化部门名（旧名→新名）
     if 'dept' in safe and safe['dept']:
         safe['dept'] = _normalize_dept(safe['dept'])
+    if 'concurrentDept' in safe and safe['concurrentDept']:
+        safe['concurrentDept'] = _normalize_dept(safe['concurrentDept'])
     return jsonify(safe)
 
 @app.route('/api/auth/register', methods=['POST'])

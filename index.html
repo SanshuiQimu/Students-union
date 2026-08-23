@@ -949,10 +949,38 @@ html.light-mode #frosted-slider.expanding{box-shadow:inset 0 0 var(--inner-shado
       </div>
       <div class="form-group"><label>主要负责</label><input type="text" id="fDuty" placeholder="如：活动策划、财务管理等"></div>
       <div class="form-group"><label>离职时间</label><input type="date" id="fLeaveDate" placeholder="留空表示在任"></div>
+      <div class="form-group" style="display:flex;align-items:center;gap:10px;margin-top:4px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;color:var(--text-secondary)">
+          <input type="checkbox" id="fConcurrent" onchange="toggleConcurrent()" style="width:18px;height:18px;accent-color:var(--gold);cursor:pointer"> 兼任其他部门
+        </label>
+      </div>
+      <div id="concurrentFields" style="display:none">
+        <div class="form-row">
+          <div class="form-group"><label>兼任部门</label>
+            <select id="fConcurrentDept"><option value="">选择兼任部门</option>
+              <option>办公室</option><option>学习部</option><option>体育部</option><option>宣传部</option><option>纪检部</option><option>生活部</option><option>社团管理部</option><option>主席团</option>
+            </select>
+          </div>
+          <div class="form-group"><label>兼任职位</label>
+            <select id="fConcurrentPosition"><option value="">选择职位</option><option>会长</option><option>副会长</option><option>处长</option><option>副处长</option><option>部长</option><option>副部长</option><option>部员</option></select>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal()">取消</button>
       <button class="btn btn-primary" onclick="saveMember()">确认保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== DEPT SELECT MODAL (兼任部门选择) ===== -->
+<div class="modal-overlay" id="deptSelectModal" style="z-index:3000">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header"><h2><span id="iconDeptSelect" style="display:inline-flex;vertical-align:middle;margin-right:6px"></span>选择进入部门</h2></div>
+    <div class="modal-body">
+      <p style="font-size:14px;color:var(--text-secondary);line-height:1.6;margin-bottom:20px">您在多个部门担任职务，请选择本次登录要进入的部门：</p>
+      <div id="deptSelectOptions" style="display:flex;flex-direction:column;gap:12px"></div>
     </div>
   </div>
 </div>
@@ -1279,6 +1307,12 @@ function doLoginSupabase(userData, rawPass){
     joinDate: userData.join_date || userData.joinDate || '',
     leaveDate: userData.leave_date || userData.leaveDate || ''
   };
+  // 从本地members数组补充兼任信息
+  var mInfo = members.find(function(m){ return m.name === found.name; });
+  if(mInfo && mInfo.concurrentDept){
+    found.concurrentDept = mInfo.concurrentDept;
+    found.concurrentPosition = mInfo.concurrentPosition;
+  }
   _setupLoginSession(found, rawPass === '123456');
 }
 
@@ -1299,12 +1333,26 @@ function doLogin(user, passHash){
   _setupLoginSession(found, found.passwordHash === DEFAULT_PASSWORD_HASH);
 }
 
-function _setupLoginSession(found, isDefaultPwd){
+function _setupLoginSession(found, isDefaultPwd, selectedDept){
+  // 兼任部门选择：如果有兼任部门且未选择，弹出选择界面
+  if(!selectedDept && found.concurrentDept){
+    showDeptSelectModal(found, isDefaultPwd);
+    return;
+  }
+  
+  // 确定使用哪个部门/职位
+  var useDept = found.dept;
+  var usePosition = found.position;
+  if(selectedDept === found.concurrentDept){
+    useDept = found.concurrentDept;
+    usePosition = found.concurrentPosition;
+  }
+
   // 角色权限验证
-  const isMinister = found.position === '会长' || found.position === '副会长' || found.position === '处长' || found.position === '副处长' || found.position === '部长' || found.position === '副部长';
+  const isMinister = usePosition === '会长' || usePosition === '副会长' || usePosition === '处长' || usePosition === '副处长' || usePosition === '部长' || usePosition === '副部长';
   if(isMinister && selectedRole === '成员'){
     const err = document.getElementById('loginError');
-    err.textContent = '您的身份为' + found.position + '，请选择"部长"身份登录';
+    err.textContent = '您的身份为' + usePosition + '，请选择"部长"身份登录';
     err.style.display = 'block';
     setTimeout(() => { err.style.display = 'none'; err.textContent = '用户名或密码错误，或不在系统名单中'; }, 3000);
     return;
@@ -1318,13 +1366,13 @@ function _setupLoginSession(found, isDefaultPwd){
   }
 
   if(selectedRole === '成员'){
-    currentUser = {name:found.name, role:'成员', dept:found.dept, position:found.position, isAdmin:false, isDeptAdmin:false, isMember:true};
+    currentUser = {name:found.name, role:'成员', dept:useDept, position:usePosition, isAdmin:false, isDeptAdmin:false, isMember:true};
   } else {
-    const isPresident = found.position === '会长' || found.position === '副会长';
-    const isSecretaryAdmin = isPresident || (found.dept === '办公室' && (found.position === '处长' || found.position === '副处长' || found.position === '部长'));
-    const isDeptMinister = found.position === '处长' || found.position === '副处长' || found.position === '部长' || found.position === '副部长' || found.position === '副会长';
+    const isPresident = usePosition === '会长' || usePosition === '副会长';
+    const isSecretaryAdmin = isPresident || (useDept === '办公室' && (usePosition === '处长' || usePosition === '副处长' || usePosition === '部长'));
+    const isDeptMinister = usePosition === '处长' || usePosition === '副处长' || usePosition === '部长' || usePosition === '副部长' || usePosition === '副会长';
     currentUser = {
-      name: found.name, role: found.position, dept: found.dept, position: found.position,
+      name: found.name, role: usePosition, dept: useDept, position: usePosition,
       isAdmin: isSecretaryAdmin,
       isDeptAdmin: !isSecretaryAdmin && isDeptMinister,
       isMember: false
@@ -1340,8 +1388,8 @@ function _setupLoginSession(found, isDefaultPwd){
   document.getElementById('profileAvatar').textContent = currentUser.name[0];
   document.getElementById('profileName').textContent = currentUser.name;
   document.getElementById('profileRole').textContent = currentUser.isAdmin ? '管理员' : currentUser.role;
-  document.getElementById('profileDept').textContent = found.dept || '--';
-  document.getElementById('profilePosition').textContent = found.position || '--';
+  document.getElementById('profileDept').textContent = useDept || '--';
+  document.getElementById('profilePosition').textContent = usePosition || '--';
   document.getElementById('profileDuty').textContent = found.duty || '--';
   document.getElementById('profileJoin').textContent = found.joinDate || '--';
   document.getElementById('profileLeave').textContent = found.leaveDate || '在任';
@@ -1386,9 +1434,59 @@ function _setupLoginSession(found, isDefaultPwd){
     localStorage.setItem('su_saved_login', JSON.stringify({
       name: found.name,
       role: selectedRole,
+      selectedDept: selectedDept || '',
       ts: Date.now()
     }));
   } catch(e) {}
+}
+
+// ===== 兼任部门选择弹窗 =====
+var _pendingLoginFound = null;
+var _pendingLoginIsDefaultPwd = false;
+function showDeptSelectModal(found, isDefaultPwd){
+  _pendingLoginFound = found;
+  _pendingLoginIsDefaultPwd = isDefaultPwd;
+  
+  var options = [];
+  // 主部门
+  options.push({
+    dept: found.dept,
+    position: found.position,
+    isPrimary: true
+  });
+  // 兼任部门
+  if(found.concurrentDept){
+    options.push({
+      dept: found.concurrentDept,
+      position: found.concurrentPosition,
+      isPrimary: false
+    });
+  }
+  
+  var html = options.map(function(opt){
+    var label = opt.isPrimary ? '主部门' : '兼任';
+    var tag = opt.isPrimary 
+      ? '<span style="font-size:11px;color:var(--gold);margin-left:4px;background:rgba(226,176,74,0.12);padding:2px 6px;border-radius:4px">'+label+'</span>'
+      : '<span style="font-size:11px;color:#9f7aea;margin-left:4px;background:rgba(159,122,234,0.12);padding:2px 6px;border-radius:4px">'+label+'</span>';
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:var(--bg-card);border:2px solid var(--border);border-radius:14px;cursor:pointer;transition:all .3s" onclick="selectLoginDept(\''+opt.dept+'\')" onmouseover="this.style.borderColor=\'rgba(226,176,74,0.4)\'" onmouseout="this.style.borderColor=\'var(--border)\'">' +
+      '<div>' +
+        '<div style="font-size:16px;font-weight:600;color:var(--text)">'+opt.dept+tag+'</div>' +
+        '<div style="font-size:13px;color:var(--text-secondary);margin-top:4px">职位：'+opt.position+'</div>' +
+      '</div>' +
+      '<div style="color:var(--gold);font-size:20px">›</div>' +
+    '</div>';
+  }).join('');
+  
+  document.getElementById('deptSelectOptions').innerHTML = html;
+  document.getElementById('deptSelectModal').classList.add('show');
+}
+
+function selectLoginDept(dept){
+  document.getElementById('deptSelectModal').classList.remove('show');
+  if(_pendingLoginFound){
+    _setupLoginSession(_pendingLoginFound, _pendingLoginIsDefaultPwd, dept);
+    _pendingLoginFound = null;
+  }
 }
 
 // ===== 自动登录（同设备免登录）=====
@@ -1422,7 +1520,14 @@ function tryAutoLogin(){
         }
         var found = members.find(function(m){ return m.name === data.name; });
         if(found){
-          _setupLoginSession(found, found.passwordHash === DEFAULT_PASSWORD_HASH);
+          var savedDept = data.selectedDept || '';
+          if(savedDept && found.concurrentDept === savedDept){
+            _setupLoginSession(found, found.passwordHash === DEFAULT_PASSWORD_HASH, savedDept);
+          } else if(savedDept && found.dept === savedDept){
+            _setupLoginSession(found, found.passwordHash === DEFAULT_PASSWORD_HASH, savedDept);
+          } else {
+            _setupLoginSession(found, found.passwordHash === DEFAULT_PASSWORD_HASH);
+          }
         } else {
           localStorage.removeItem('su_saved_login');
         }
@@ -1431,7 +1536,14 @@ function tryAutoLogin(){
         loadFromLocal();
         var found = members.find(function(m){ return m.name === data.name; });
         if(found){
-          _setupLoginSession(found, found.passwordHash === DEFAULT_PASSWORD_HASH);
+          var savedDept = data.selectedDept || '';
+          if(savedDept && found.concurrentDept === savedDept){
+            _setupLoginSession(found, found.passwordHash === DEFAULT_PASSWORD_HASH, savedDept);
+          } else if(savedDept && found.dept === savedDept){
+            _setupLoginSession(found, found.passwordHash === DEFAULT_PASSWORD_HASH, savedDept);
+          } else {
+            _setupLoginSession(found, found.passwordHash === DEFAULT_PASSWORD_HASH);
+          }
         }
       });
     return true;
@@ -1459,7 +1571,7 @@ function _closeTopPanel(){
     }
   }
   // 检查 modal
-  var modals = ['memberModal', 'confirmModal', 'changePwdModal'];
+  var modals = ['memberModal', 'confirmModal', 'changePwdModal', 'deptSelectModal'];
   for(var j = 0; j < modals.length; j++){
     var m = document.getElementById(modals[j]);
     if(m && m.classList.contains('show')){
@@ -1676,9 +1788,14 @@ function checkNewMessages(){
 }
 
 function updateStats(){
-  const list = currentUser.isDeptAdmin && !currentUser.isAdmin
-    ? members.filter(m => m.dept === currentUser.dept)
-    : members;
+  if(currentUser.isDeptAdmin && !currentUser.isAdmin){
+    // 包含兼任成员：主部门匹配或兼任部门匹配
+    var list = members.filter(function(m){
+      return m.dept === currentUser.dept || m.concurrentDept === currentUser.dept;
+    });
+  } else {
+    var list = members;
+  }
   document.getElementById('statTotal').textContent = list.length;
   const active = list.filter(m => !m.leaveDate).length;
   document.getElementById('statActive').textContent = active;
@@ -1694,7 +1811,19 @@ function updateStats(){
 function getVisibleMembers(){
   const deptOrder = ['主席团','办公室','宣传部','体育部','生活部','纪检部','学习部','社团管理部'];
   const posOrder = ['会长','副会长','处长','副处长','部长','副部长','部员'];
-  return [...members].sort((a, b) => {
+  // 扩展兼任成员：有concurrentDept的成员在兼任部门也出现一条
+  var expanded = [];
+  members.forEach(function(m){
+    expanded.push(m);
+    if(m.concurrentDept && m.concurrentPosition){
+      expanded.push(Object.assign({}, m, {
+        dept: m.concurrentDept,
+        position: m.concurrentPosition,
+        _isConcurrent: true
+      }));
+    }
+  });
+  return expanded.sort((a, b) => {
     const ia = deptOrder.indexOf(a.dept);
     const ib = deptOrder.indexOf(b.dept);
     const oa = ia === -1 ? 999 : ia;
@@ -1783,8 +1912,9 @@ function renderTable(){
     targetBody.innerHTML = pageData.length ? pageData.map((m, i) => {
       const c = avatarColors[(m.id||i) % avatarColors.length];
       const isActive = !m.leaveDate;
+      var concurrentTag = m._isConcurrent ? '<span style="font-size:11px;color:#9f7aea;margin-left:4px;background:rgba(159,122,234,0.12);padding:2px 6px;border-radius:4px;border:1px solid rgba(159,122,234,0.2)">兼任</span>' : '';
       return `<tr>
-        <td><div class="member-name"><div class="member-avatar" style="background:${c}22;color:${c}">${m.name[0]}</div>${m.name}${m.dismissPending?'<span style="font-size:11px;color:var(--warning);margin-left:4px;background:rgba(245,158,11,0.1);padding:2px 6px;border-radius:4px">开除申请待审批</span>':''}</div></td>
+        <td><div class="member-name"><div class="member-avatar" style="background:${c}22;color:${c}">${m.name[0]}</div>${m.name}${concurrentTag}${m.dismissPending?'<span style="font-size:11px;color:var(--warning);margin-left:4px;background:rgba(245,158,11,0.1);padding:2px 6px;border-radius:4px">开除申请待审批</span>':''}</div></td>
         <td><span class="dept-tag dept-${m.dept}">${m.dept}</span></td>
         <td><span class="position-tag position-${m.position}">${m.position}</span></td>
         <td style="color:var(--text-secondary);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${m.duty}">${m.duty}</td>
@@ -1807,8 +1937,9 @@ function renderTable(){
           <button class="icon-btn delete" title="开除" onclick="confirmDelete(${m.id},'${m.name}')">${ipIcon('delete',14)}</button>
         </div></td>` : (showAdmin ? '<td></td>' : '');
       const dismissTag = m.dismissPending ? '<span style="font-size:11px;color:var(--warning);margin-left:4px;background:rgba(245,158,11,0.1);padding:2px 6px;border-radius:4px">开除申请待审批</span>' : '';
+      var concurrentTag = m._isConcurrent ? '<span style="font-size:11px;color:#9f7aea;margin-left:4px;background:rgba(159,122,234,0.12);padding:2px 6px;border-radius:4px;border:1px solid rgba(159,122,234,0.2)">兼任</span>' : '';
       return `<tr>
-        <td><div class="member-name"><div class="member-avatar" style="background:${c}22;color:${c}">${m.name[0]}</div>${m.name}${dismissTag}</div></td>
+        <td><div class="member-name"><div class="member-avatar" style="background:${c}22;color:${c}">${m.name[0]}</div>${m.name}${concurrentTag}${dismissTag}</div></td>
         ${accountCell}
         <td><span class="dept-tag dept-${m.dept}">${m.dept}</span></td>
         <td><span class="position-tag position-${m.position}">${m.position}</span></td>
@@ -1828,6 +1959,19 @@ function renderTable(){
 }
 function goPage(p){ currentPage = p; renderTable(); }
 
+function toggleConcurrent(){
+  var cb = document.getElementById('fConcurrent');
+  document.getElementById('concurrentFields').style.display = cb.checked ? 'block' : 'none';
+  if(cb.checked){
+    var primaryDept = document.getElementById('fDept').value;
+    var opts = document.getElementById('fConcurrentDept').querySelectorAll('option');
+    opts.forEach(function(o){
+      if(o.value === primaryDept){ o.disabled = true; o.style.color = 'var(--text-secondary)'; }
+      else { o.disabled = false; o.style.color = ''; }
+    });
+  }
+}
+
 // ===== MODAL =====
 function openModal(type, id){
   document.getElementById('editId').value = '';
@@ -1837,6 +1981,10 @@ function openModal(type, id){
   document.getElementById('fDuty').value = '';
   document.getElementById('fJoinDate').value = '';
   document.getElementById('fLeaveDate').value = '';
+  document.getElementById('fConcurrent').checked = false;
+  document.getElementById('concurrentFields').style.display = 'none';
+  document.getElementById('fConcurrentDept').value = '';
+  document.getElementById('fConcurrentPosition').value = '';
   document.getElementById('modalTitle').textContent = '添加成员';
 
   const deptSelect = document.getElementById('fDept');
@@ -1858,6 +2006,13 @@ function openModal(type, id){
     document.getElementById('fDuty').value = m.duty;
     document.getElementById('fJoinDate').value = m.joinDate;
     document.getElementById('fLeaveDate').value = m.leaveDate;
+    if(m.concurrentDept){
+      document.getElementById('fConcurrent').checked = true;
+      document.getElementById('concurrentFields').style.display = 'block';
+      document.getElementById('fConcurrentDept').value = m.concurrentDept;
+      document.getElementById('fConcurrentPosition').value = m.concurrentPosition || '';
+      toggleConcurrent();
+    }
     document.getElementById('modalTitle').textContent = '编辑成员';
   }
   document.getElementById('memberModal').classList.add('show');
@@ -1875,6 +2030,18 @@ function saveMember(){
   const joinDate = document.getElementById('fJoinDate').value;
   const leaveDate = document.getElementById('fLeaveDate').value;
   const editId = document.getElementById('editId').value;
+  // 兼任字段
+  var isConcurrent = document.getElementById('fConcurrent').checked;
+  var concurrentDept = isConcurrent ? document.getElementById('fConcurrentDept').value : '';
+  var concurrentPosition = isConcurrent ? document.getElementById('fConcurrentPosition').value : '';
+  if(isConcurrent && (!concurrentDept || !concurrentPosition)){
+    showToast('error', '请选择兼任部门和职位');
+    return;
+  }
+  if(isConcurrent && concurrentDept === dept){
+    showToast('error', '兼任部门不能与主部门相同');
+    return;
+  }
   if(!name||!dept||!position||!joinDate){
     showToast('error', '请填写完整信息（姓名、部门、职位、入职时间）');
     return;
@@ -1886,7 +2053,7 @@ function saveMember(){
       var changes = [];
       if(m.dept !== dept) changes.push('部门由「' + m.dept + '」变更为「' + dept + '」');
       if(m.position !== position) changes.push('职位由「' + m.position + '」变更为「' + position + '」');
-      Object.assign(m, {name,dept,position,duty,joinDate,leaveDate});
+      Object.assign(m, {name,dept,position,duty,joinDate,leaveDate,concurrentDept,concurrentPosition});
       if(changes.length){
         sendMsg(name, '信息变动通知',
           '您的' + changes.join('，') + '。',
@@ -1901,10 +2068,10 @@ function saveMember(){
       return;
     }
     const newId = members.length ? Math.max(...members.map(m=>m.id)) + 1 : 1;
-    members.push({id:newId,name,dept,position,duty,joinDate,leaveDate});
+    members.push({id:newId,name,dept,position,duty,joinDate,leaveDate,concurrentDept,concurrentPosition});
     // 给新成员发送欢迎消息
     sendMsg(name, '欢迎加入学生会',
-      '您的部门为' + dept + '，职位为' + position + '。',
+      '您的部门为' + dept + '，职位为' + position + (concurrentDept ? '，兼任' + concurrentDept + concurrentPosition : '') + '。',
       '系统', '办公室');
     showToast('success', `已添加 ${name}`);
   }

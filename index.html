@@ -2163,10 +2163,20 @@ function directDismiss(memberId, memberName){
       }).catch(function(){});
     });
   }
-  // 直接调用后端DELETE删除云端记录（含Supabase）
-  fetch(API_BASE + '/api/member/' + memberId, { method: 'DELETE' })
+  // 直接调用后端按姓名删除（同时删除 SQLite 和 Supabase，解决 ID 不匹配问题）
+  fetch(API_BASE + '/api/member/delete-by-name', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({name: memberName})
+  })
+    .then(function(resp){
+      if(!resp.ok) throw new Error('删除失败');
+      return resp.json();
+    })
     .then(function(){
+      // 从本地成员列表移除
       members = members.filter(function(x){ return String(x.id) !== String(memberId); });
+      // 再保存到本地和云端（saveData 内含安全删除逻辑，双保险）
       saveData();
       // 通知所有在任管理层同步数据
       members.forEach(function(a){
@@ -2188,7 +2198,7 @@ function directDismiss(memberId, memberName){
       showToast('success', '已直接开除 ' + memberName);
     })
     .catch(function(e){
-      console.error('DELETE失败:', e);
+      console.error('删除失败:', e);
       showToast('error', '开除失败，请稍后重试');
     });
 }
@@ -3013,12 +3023,20 @@ function handleDismissApprove(applicantName, memberId, msgId){
         return;
       }
       var memberName = m.name || applicantName;
-      // 执行开除：先调用后端DELETE删除云端记录（含Supabase），必须等待完成
-      fetch(API_BASE + '/api/member/' + memberId, { method: 'DELETE' })
+      // 执行开除：按姓名删除（同时删除 SQLite 和 Supabase，解决 ID 不匹配问题）
+      fetch(API_BASE + '/api/member/delete-by-name', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name: memberName})
+      })
+        .then(function(resp){
+          if(!resp.ok) throw new Error('删除失败');
+          return resp.json();
+        })
         .then(function(){
-          // DELETE 成功后，从成员列表中移除
+          // 删除成功后，从成员列表中移除
           members = members.filter(function(x){ return String(x.id) !== String(memberId); });
-          // 再保存到本地和云端（此时被开除的人已不在列表中）
+          // 再保存到本地和云端（saveData 内含安全删除逻辑，双保险）
           saveData();
           // 标记消息已处理
           markMsgHandled(msgId);
@@ -3045,7 +3063,7 @@ function handleDismissApprove(applicantName, memberId, msgId){
           showToast('success', '已通过开除申请，' + memberName + ' 已被开除');
         })
         .catch(function(e){
-          console.error('DELETE失败:', e);
+          console.error('删除失败:', e);
           showToast('error', '开除失败，请稍后重试');
         });
     })

@@ -122,7 +122,7 @@ def static_files(path):
 
 # ===== API: MEMBERS =====
 def _sync_members_to_supabase(members):
-    """将成员列表批量同步到 Supabase user_account 表（仅插入/更新，不删除）"""
+    """将成员列表批量同步到 Supabase user_account 表（插入/更新/安全删除）"""
     if not _use_supabase:
         return {'synced': False, 'reason': 'Supabase 未配置'}
     try:
@@ -130,13 +130,15 @@ def _sync_members_to_supabase(members):
         existing = _supabase_get('user_account', 'select=username')
         existing_names = {u.get('username') for u in existing} if existing else set()
 
+        incoming_names = set()
         to_insert = []
         to_update = []
         for m in members:
             name = m.get('name', '')
             if not name:
                 continue
-            # 构建同步数据
+            incoming_names.add(name)
+            # 构建同步数据：兼任字段始终包含（含空值），确保清除旧数据
             user_data = {
                 'username': name,
                 'name': name,
@@ -144,18 +146,12 @@ def _sync_members_to_supabase(members):
                 'position': m.get('position', ''),
                 'duty': m.get('duty', ''),
                 'join_date': m.get('joinDate', ''),
-                'leave_date': m.get('leaveDate', '')
+                'leave_date': m.get('leaveDate', ''),
+                'concurrent_dept': m.get('concurrentDept', ''),
+                'concurrent_position': m.get('concurrentPosition', '')
             }
-            # 兼任字段仅在非空时包含，避免表无此列时导致整条同步失败
-            cd = m.get('concurrentDept', '')
-            cp = m.get('concurrentPosition', '')
-            if cd:
-                user_data['concurrent_dept'] = cd
-            if cp:
-                user_data['concurrent_position'] = cp
             if name in existing_names:
                 # 更新已有用户时【不包含 password_hash】，避免旧密码覆盖新密码
-                # 密码变更仅通过 /api/auth/update 端点显式执行
                 to_update.append((name, user_data))
             else:
                 # 新用户：密码明文存储，默认 123456
@@ -174,9 +170,19 @@ def _sync_members_to_supabase(members):
             encoded_name = urllib.parse.quote(name, safe='')
             _supabase_patch('user_account', f"username=eq.{encoded_name}", user_data)
 
-        # 不再在全量同步中删除用户，避免旧数据覆盖导致误删云端用户
-        # 用户删除仅通过 DELETE /api/member/<id> 端点显式执行
-        return {'synced': True, 'inserted': len(to_insert), 'updated': len(to_update), 'deleted': 0}
+        # 安全删除：Supabase 中存在但不在传入列表中的用户，予以删除
+        # 安全条件：传入列表不为空，且传入人数 >= Supabase 现有人数的 50%
+        # 防止旧客户端用不全的数据覆盖导致误删
+        deleted_count = 0
+        if incoming_names and len(existing_names) > 0:
+            if len(incoming_names) >= len(existing_names) * 0.5:
+                to_delete_names = existing_names - incoming_names
+                for name in to_delete_names:
+                    encoded_name = urllib.parse.quote(name, safe='')
+                    _supabase_delete('user_account', f"username=eq.{encoded_name}")
+                    deleted_count += 1
+
+        return {'synced': True, 'inserted': len(to_insert), 'updated': len(to_update), 'deleted': deleted_count}
     except Exception as e:
         print(f"[Supabase] 同步失败: {e}")
         return {'synced': False, 'reason': str(e)}
@@ -243,14 +249,13 @@ def get_members():
                         lm = json.loads(r['data'])
                         if lm.get('name'):
                             local_map[lm['name']] = lm
-                # 用本地兼任数据补充 Supabase 返回结果
+                # 用本地数据覆盖 Supabase 返回的兼任字段（本地数据更准确）
                 for m in data:
                     lm = local_map.get(m.get('name', ''))
                     if lm:
-                        if not m.get('concurrentDept') and lm.get('concurrentDept'):
-                            m['concurrentDept'] = lm['concurrentDept']
-                        if not m.get('concurrentPosition') and lm.get('concurrentPosition'):
-                            m['concurrentPosition'] = lm['concurrentPosition']
+                        # 兼任字段：本地有值则覆盖 Supabase，本地为空则清空 Supabase
+                        m['concurrentDept'] = lm.get('concurrentDept', '')
+                        m['concurrentPosition'] = lm.get('concurrentPosition', '')
                 return jsonify([_normalize_member(m) for m in data])
         # 回退 SQLite
         if _use_pg:
@@ -368,8 +373,8 @@ def update_member(mid):
 @app.route('/api/member/<int:mid>', methods=['DELETE'])
 def delete_member(mid):
     with _lock:
-        # 先获取成员名字（用于删除 Supabase 记录）
         member_name = None
+        # 先从 SQLite 获取成员名字
         if _use_pg:
             s = _Session()
             try:
@@ -390,6 +395,47 @@ def delete_member(mid):
             conn.close()
         # 同步删除 Supabase 记录（对中文用户名进行 URL 编码）
         if _use_supabase and member_name:
+            encoded_name = urllib.parse.quote(member_name, safe='')
+            _supabase_delete('user_account', f"username=eq.{encoded_name}")
+    return jsonify({"ok": True, "deleted": member_name})
+
+@app.route('/api/member/delete-by-name', methods=['POST'])
+def delete_member_by_name():
+    """按姓名删除成员（同时删除 SQLite 和 Supabase），解决ID不匹配问题"""
+    data = request.get_json(force=True)
+    member_name = data.get('name', '')
+    if not member_name:
+        return jsonify({"error": "missing name"}), 400
+    with _lock:
+        # 从 SQLite 删除所有同名成员
+        if _use_pg:
+            s = _Session()
+            try:
+                rows = s.query(_Member).all()
+                for r in rows:
+                    try:
+                        em = json.loads(r.data)
+                        if em.get('name', '') == member_name:
+                            s.delete(r)
+                    except Exception:
+                        pass
+                s.commit()
+            finally:
+                s.close()
+        else:
+            conn = _sqlite_db()
+            rows = conn.execute("SELECT id, data FROM members").fetchall()
+            for row in rows:
+                try:
+                    em = json.loads(row['data'])
+                    if em.get('name', '') == member_name:
+                        conn.execute("DELETE FROM members WHERE id=?", (row['id'],))
+                except Exception:
+                    pass
+            conn.commit()
+            conn.close()
+        # 从 Supabase 删除（对中文用户名进行 URL 编码）
+        if _use_supabase:
             encoded_name = urllib.parse.quote(member_name, safe='')
             _supabase_delete('user_account', f"username=eq.{encoded_name}")
     return jsonify({"ok": True, "deleted": member_name})

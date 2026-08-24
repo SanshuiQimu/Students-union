@@ -111,6 +111,38 @@ def diagnose():
             users = _supabase_get('user_account', 'select=username&limit=1')
             result['supabase_connected'] = True
             result['user_count'] = len(_supabase_get('user_account', 'select=username'))
+            # 检查 concurrent_dept 列是否存在
+            try:
+                test = _supabase_get('user_account', 'select=concurrent_dept,concurrent_position&limit=1')
+                result['has_concurrent_columns'] = True
+                if test:
+                    result['sample_concurrent'] = test[0]
+            except Exception as e:
+                result['has_concurrent_columns'] = False
+                result['concurrent_error'] = str(e)
+            # 检查本地数据库状态
+            if _use_pg:
+                result['db_type'] = 'PostgreSQL'
+                s = _Session()
+                try:
+                    count = s.query(_Member).count()
+                    result['local_member_count'] = count
+                    # 检查本地是否有兼任数据
+                    rows = s.query(_Member).all()
+                    concurrent_local = 0
+                    for r in rows:
+                        try:
+                            m = json.loads(r.data)
+                            if m.get('concurrentDept'):
+                                concurrent_local += 1
+                        except Exception:
+                            pass
+                    result['local_concurrent_count'] = concurrent_local
+                finally:
+                    s.close()
+            else:
+                result['db_type'] = 'SQLite'
+                result['db_path'] = DB_PATH
         except Exception as e:
             result['supabase_connected'] = False
             result['error'] = str(e)

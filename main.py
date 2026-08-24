@@ -117,6 +117,8 @@ def diagnose():
                 result['has_concurrent_columns'] = True
                 if test:
                     result['sample_concurrent'] = test[0]
+                else:
+                    result['sample_concurrent'] = '(empty result - column may not exist)'
             except Exception as e:
                 result['has_concurrent_columns'] = False
                 result['concurrent_error'] = str(e)
@@ -127,7 +129,6 @@ def diagnose():
                 try:
                     count = s.query(_Member).count()
                     result['local_member_count'] = count
-                    # 检查本地是否有兼任数据
                     rows = s.query(_Member).all()
                     concurrent_local = 0
                     for r in rows:
@@ -143,10 +144,55 @@ def diagnose():
             else:
                 result['db_type'] = 'SQLite'
                 result['db_path'] = DB_PATH
+                conn = _sqlite_db()
+                try:
+                    count = conn.execute("SELECT COUNT(*) FROM members").fetchone()[0]
+                    result['local_member_count'] = count
+                    rows = conn.execute("SELECT data FROM members").fetchall()
+                    concurrent_local = 0
+                    for row in rows:
+                        try:
+                            m = json.loads(row['data'])
+                            if m.get('concurrentDept'):
+                                concurrent_local += 1
+                        except Exception:
+                            pass
+                    result['local_concurrent_count'] = concurrent_local
+                except Exception as e:
+                    result['local_db_error'] = str(e)
+                finally:
+                    conn.close()
         except Exception as e:
             result['supabase_connected'] = False
             result['error'] = str(e)
     return jsonify(result)
+
+@app.route('/api/diagnose/patch-test')
+def patch_test():
+    """测试 Supabase PATCH 是否正常工作"""
+    if not _use_supabase:
+        return jsonify({'error': 'Supabase 未配置'}), 503
+    results = {}
+    # 1. 查找一个已有用户
+    users = _supabase_get('user_account', 'select=username,name,concurrent_dept&limit=3')
+    results['sample_users'] = users
+    if not users:
+        return jsonify({'error': '无用户可测试', 'results': results})
+    test_user = users[0]
+    test_username = test_user.get('username', '')
+    results['test_username'] = test_username
+    # 2. 执行 PATCH 设置 concurrent_dept
+    encoded = urllib.parse.quote(test_username, safe='')
+    patch_data = {'concurrent_dept': '测试部门', 'concurrent_position': '测试职位'}
+    status, resp_data = _supabase_request('PATCH', f"user_account?username=eq.{encoded}", patch_data)
+    results['patch_status'] = status
+    results['patch_response'] = resp_data
+    # 3. 重新查询验证
+    verify = _supabase_get('user_account', f"username=eq.{encoded}&select=username,concurrent_dept,concurrent_position")
+    results['verify_after_patch'] = verify
+    # 4. 清除测试数据
+    _supabase_patch('user_account', f"username=eq.{encoded}", {'concurrent_dept': '', 'concurrent_position': ''})
+    return jsonify(results)
 
 @app.route('/<path:path>')
 def static_files(path):

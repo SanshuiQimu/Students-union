@@ -122,7 +122,7 @@ def static_files(path):
 
 # ===== API: MEMBERS =====
 def _sync_members_to_supabase(members):
-    """将成员列表批量同步到 Supabase user_account 表"""
+    """将成员列表批量同步到 Supabase user_account 表（仅插入/更新，不删除）"""
     if not _use_supabase:
         return {'synced': False, 'reason': 'Supabase 未配置'}
     try:
@@ -138,7 +138,9 @@ def _sync_members_to_supabase(members):
                 continue
             pwd_hash = m.get('passwordHash', '')
             if not pwd_hash:
-                pwd_hash = hashlib.sha256('123456'.encode('utf-8')).hexdigest()
+                # 必须使用与前端一致的带盐 SHA-256，否则 _verify_password 无法验证
+                salted = 'SU_HG_2025_LGKJ' + '123456'
+                pwd_hash = hashlib.sha256(salted.encode('utf-8')).hexdigest()
             user_data = {
                 'username': name,
                 'password_hash': pwd_hash,
@@ -169,13 +171,9 @@ def _sync_members_to_supabase(members):
         for name, user_data in to_update:
             _supabase_patch('user_account', f"username=eq.{name}", user_data)
 
-        # 删除 Supabase 中已不存在的成员（被开除的成员）
-        current_names = {m.get('name', '') for m in members if m.get('name')}
-        to_delete = existing_names - current_names
-        for name in to_delete:
-            _supabase_delete('user_account', f"username=eq.{name}")
-
-        return {'synced': True, 'inserted': len(to_insert), 'updated': len(to_update), 'deleted': len(to_delete)}
+        # 不再在全量同步中删除用户，避免旧数据覆盖导致误删云端用户
+        # 用户删除仅通过 DELETE /api/member/<id> 端点显式执行
+        return {'synced': True, 'inserted': len(to_insert), 'updated': len(to_update), 'deleted': 0}
     except Exception as e:
         print(f"[Supabase] 同步失败: {e}")
         return {'synced': False, 'reason': str(e)}
@@ -271,13 +269,22 @@ def save_members():
     if not isinstance(members, list):
         return jsonify({"error": "expected array"}), 400
     with _lock:
-        # 同步到 Supabase
+        # 同步到 Supabase（仅插入/更新，不删除）
         sync_result = _sync_members_to_supabase(members)
-        # 同时存 SQLite（作为本地缓存）
+        # 存 SQLite：合并而非全量替换，避免旧数据覆盖新数据
+        incoming_names = {m.get('name', '') for m in members if m.get('name')}
         if _use_pg:
             s = _Session()
             try:
-                s.query(_Member).delete()
+                # 删除被覆盖的同名成员，再插入新数据（保留不在列表中的成员）
+                existing = s.query(_Member).all()
+                for r in existing:
+                    try:
+                        em = json.loads(r.data)
+                        if em.get('name', '') in incoming_names:
+                            s.delete(r)
+                    except Exception:
+                        pass
                 for m in members:
                     s.add(_Member(data=json.dumps(m, ensure_ascii=False)))
                 s.commit()
@@ -285,7 +292,20 @@ def save_members():
                 s.close()
         else:
             conn = _sqlite_db()
-            conn.execute("DELETE FROM members")
+            # 获取现有成员
+            rows = conn.execute("SELECT id, data FROM members").fetchall()
+            ids_to_delete = []
+            for row in rows:
+                try:
+                    em = json.loads(row['data'])
+                    if em.get('name', '') in incoming_names:
+                        ids_to_delete.append(row['id'])
+                except Exception:
+                    pass
+            # 删除被覆盖的同名成员
+            for did in ids_to_delete:
+                conn.execute("DELETE FROM members WHERE id=?", (did,))
+            # 插入新数据
             for m in members:
                 conn.execute("INSERT INTO members (data) VALUES (?)", (json.dumps(m, ensure_ascii=False),))
             conn.commit()

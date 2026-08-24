@@ -2087,7 +2087,7 @@ function saveMember(){
       return;
     }
     const newId = members.length ? Math.max(...members.map(m=>m.id)) + 1 : 1;
-    members.push({id:newId,name,dept,position,duty,joinDate,leaveDate,concurrentDept,concurrentPosition});
+    members.push({id:newId,name,dept,position,duty,joinDate,leaveDate,concurrentDept,concurrentPosition,passwordHash:DEFAULT_PASSWORD_HASH});
     // 给新成员发送欢迎消息
     sendMsg(name, '欢迎加入学生会',
       '您的部门为' + dept + '，职位为' + position + (concurrentDept ? '，兼任' + concurrentDept + concurrentPosition : '') + '。',

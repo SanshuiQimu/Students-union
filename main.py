@@ -173,24 +173,43 @@ def patch_test():
     if not _use_supabase:
         return jsonify({'error': 'Supabase 未配置'}), 503
     results = {}
-    # 1. 查找一个已有用户
-    users = _supabase_get('user_account', 'select=username,name,concurrent_dept&limit=3')
-    results['sample_users'] = users
+    # 1. 查找一个已有用户（不包含 concurrent_dept，防止列不存在导致查询失败）
+    users = _supabase_get('user_account', 'select=*&limit=2')
+    results['sample_users_raw'] = users
     if not users:
         return jsonify({'error': '无用户可测试', 'results': results})
+    # 检查返回数据中是否有 concurrent_dept 字段
+    sample = users[0] if users else {}
+    results['available_columns'] = list(sample.keys()) if sample else []
+    results['has_concurrent_dept_column'] = 'concurrent_dept' in sample
+    # 2. 如果列不存在，尝试创建（通过 RPC）
+    if 'concurrent_dept' not in sample:
+        # 尝试通过 Supabase rpc 运行 SQL 添加列
+        try:
+            sql_data = {'query': 'ALTER TABLE user_account ADD COLUMN IF NOT EXISTS concurrent_dept TEXT DEFAULT \'\'; ALTER TABLE user_account ADD COLUMN IF NOT EXISTS concurrent_position TEXT DEFAULT \'\';'}
+            status, resp = _supabase_request('POST', 'rpc/exec_sql', sql_data)
+            results['add_column_status'] = status
+            results['add_column_response'] = resp
+        except Exception as e:
+            results['add_column_error'] = str(e)
+        # 再次查询
+        users2 = _supabase_get('user_account', 'select=*&limit=1')
+        sample2 = users2[0] if users2 else {}
+        results['columns_after_alter'] = list(sample2.keys()) if sample2 else []
+        results['has_concurrent_dept_after'] = 'concurrent_dept' in sample2
+    # 3. 执行 PATCH 设置 concurrent_dept
     test_user = users[0]
     test_username = test_user.get('username', '')
     results['test_username'] = test_username
-    # 2. 执行 PATCH 设置 concurrent_dept
     encoded = urllib.parse.quote(test_username, safe='')
     patch_data = {'concurrent_dept': '测试部门', 'concurrent_position': '测试职位'}
     status, resp_data = _supabase_request('PATCH', f"user_account?username=eq.{encoded}", patch_data)
     results['patch_status'] = status
     results['patch_response'] = resp_data
-    # 3. 重新查询验证
+    # 4. 重新查询验证
     verify = _supabase_get('user_account', f"username=eq.{encoded}&select=username,concurrent_dept,concurrent_position")
     results['verify_after_patch'] = verify
-    # 4. 清除测试数据
+    # 5. 清除测试数据
     _supabase_patch('user_account', f"username=eq.{encoded}", {'concurrent_dept': '', 'concurrent_position': ''})
     return jsonify(results)
 

@@ -147,10 +147,15 @@ def _sync_members_to_supabase(members):
                 'position': m.get('position', ''),
                 'duty': m.get('duty', ''),
                 'join_date': m.get('joinDate', ''),
-                'leave_date': m.get('leaveDate', ''),
-                'concurrent_dept': m.get('concurrentDept', ''),
-                'concurrent_position': m.get('concurrentPosition', '')
+                'leave_date': m.get('leaveDate', '')
             }
+            # 兼任字段仅在非空时包含，避免表无此列时导致整条同步失败
+            cd = m.get('concurrentDept', '')
+            cp = m.get('concurrentPosition', '')
+            if cd:
+                user_data['concurrent_dept'] = cd
+            if cp:
+                user_data['concurrent_position'] = cp
             if name in existing_names:
                 to_update.append((name, user_data))
             else:
@@ -217,6 +222,34 @@ def get_members():
         if _use_supabase:
             data = _load_members_from_supabase()
             if data is not None:
+                # 合并本地 SQLite/PG 中的兼任数据（Supabase 可能缺少 concurrent 列）
+                local_map = {}
+                if _use_pg:
+                    s = _Session()
+                    try:
+                        rows = s.query(_Member).order_by(_Member.id).all()
+                        for r in rows:
+                            lm = json.loads(r.data)
+                            if lm.get('name'):
+                                local_map[lm['name']] = lm
+                    finally:
+                        s.close()
+                else:
+                    conn = _sqlite_db()
+                    rows = conn.execute("SELECT data FROM members ORDER BY id").fetchall()
+                    conn.close()
+                    for r in rows:
+                        lm = json.loads(r['data'])
+                        if lm.get('name'):
+                            local_map[lm['name']] = lm
+                # 用本地兼任数据补充 Supabase 返回结果
+                for m in data:
+                    lm = local_map.get(m.get('name', ''))
+                    if lm:
+                        if not m.get('concurrentDept') and lm.get('concurrentDept'):
+                            m['concurrentDept'] = lm['concurrentDept']
+                        if not m.get('concurrentPosition') and lm.get('concurrentPosition'):
+                            m['concurrentPosition'] = lm['concurrentPosition']
                 return jsonify([_normalize_member(m) for m in data])
         # 回退 SQLite
         if _use_pg:
@@ -630,7 +663,10 @@ def auth_register():
 def auth_users():
     if not _use_supabase:
         return jsonify([])
-    users = _supabase_get('user_account', 'select=id,username,name,dept,position,duty,join_date,leave_date&order=created_at.asc')
+    # 先尝试带兼任字段的查询，失败则回退不带兼任字段（兼容旧表）
+    users = _supabase_get('user_account', 'select=*,concurrent_dept,concurrent_position&order=created_at.asc')
+    if not users:
+        users = _supabase_get('user_account', 'select=*&order=created_at.asc')
     result = []
     for u in users:
         result.append({
@@ -641,7 +677,9 @@ def auth_users():
             'position': u.get('position', ''),
             'duty': u.get('duty', ''),
             'joinDate': u.get('join_date', ''),
-            'leaveDate': u.get('leave_date', '')
+            'leaveDate': u.get('leave_date', ''),
+            'concurrentDept': u.get('concurrent_dept', ''),
+            'concurrentPosition': u.get('concurrent_position', '')
         })
     return jsonify(result)
 

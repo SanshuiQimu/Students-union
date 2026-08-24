@@ -1725,15 +1725,14 @@ function initMain(){
   startMsgPolling();
 }
 
-// ===== 消息轮询 + 原生通知（仅 Android App）=====
+// ===== 消息轮询 + 原生通知 =====
 var _lastMsgIds = {};
 var _msgPollTimer = null;
 var _msgPollInterval = 3000; // 前台3秒
 function startMsgPolling(){
-  if(!document.documentElement.classList.contains('android-app')) return;
   if(_msgPollTimer) return;
   _lastMsgIds = {}; // 重置已通知的消息ID
-  // 通知原生层当前用户
+  // 通知原生层当前用户（仅 Android）
   if(window.AndroidNative && window.AndroidNative.setUser){
     window.AndroidNative.setUser(currentUser.name);
   }
@@ -1744,7 +1743,7 @@ function startMsgPolling(){
   document.addEventListener('visibilitychange', function(){
     if(_msgPollTimer){ clearInterval(_msgPollTimer); _msgPollTimer = null; }
     _msgPollInterval = document.hidden ? 15000 : 3000; // 后台15秒，前台3秒
-    // 通知原生层用户状态
+    // 通知原生层用户状态（仅 Android）
     if(window.AndroidNative && window.AndroidNative.onAppVisibilityChanged){
       window.AndroidNative.onAppVisibilityChanged(document.hidden);
     }
@@ -1766,8 +1765,21 @@ function checkNewMessages(){
     .then(function(r){ return r.json(); })
     .then(function(data){
       if(!Array.isArray(data)) return;
-      localStorage.setItem(MSG_KEY, JSON.stringify(data));
-      var myMsgs = data.filter(function(m){ return m.to === currentUser.name; });
+      // 合并服务器数据和本地数据，避免服务器空数据覆盖本地
+      var localMsgs = loadMessages();
+      var localIds = {};
+      localMsgs.forEach(function(m){ localIds[m.id] = m; });
+      var serverIds = {};
+      data.forEach(function(m){ serverIds[m.id] = m; });
+      // 合并：服务器数据优先，但保留本地有而服务器没有的消息（防丢）
+      var merged = data.slice();
+      localMsgs.forEach(function(m){
+        if(!serverIds[m.id]){
+          merged.push(m);
+        }
+      });
+      localStorage.setItem(MSG_KEY, JSON.stringify(merged));
+      var myMsgs = merged.filter(function(m){ return m.to === currentUser.name; });
 
       // 找未通知过的新消息
       var newUnnotified = myMsgs.filter(function(m){
@@ -1778,7 +1790,7 @@ function checkNewMessages(){
         // 标记已通知
         newUnnotified.forEach(function(m){ _lastMsgIds[m.id] = true; });
 
-        // 调用原生通知
+        // 调用原生通知（仅 Android App）
         if(window.AndroidNative && window.AndroidNative.showNotification){
           if(newUnnotified.length === 1){
             var m = newUnnotified[0];
@@ -2272,7 +2284,15 @@ function syncMessagesFromCloud(){
     .then(function(r){ return r.json(); })
     .then(function(data){
       if(Array.isArray(data)){
-        localStorage.setItem(MSG_KEY, JSON.stringify(data));
+        // 合并服务器数据和本地数据，避免空数据覆盖
+        var localMsgs = loadMessages();
+        var serverIds = {};
+        data.forEach(function(m){ serverIds[m.id] = m; });
+        var merged = data.slice();
+        localMsgs.forEach(function(m){
+          if(!serverIds[m.id]) merged.push(m);
+        });
+        localStorage.setItem(MSG_KEY, JSON.stringify(merged));
         updateMsgBadge();
       }
     })
@@ -2294,8 +2314,14 @@ function updateMsgBadge(){
 }
 function sendMsg(to, title, body, operatorName, operatorDept, type, applicantName, memberId){
   var msgs = loadMessages();
+  // 生成唯一消息ID：时间戳+随机数，避免多端ID冲突
+  var newId = Date.now();
+  // 确保ID不与已有消息重复
+  var existingIds = {};
+  msgs.forEach(function(m){ existingIds[m.id] = true; });
+  while(existingIds[newId]) newId++;
   var newMsg = {
-    id: msgs.length ? Math.max.apply(null, msgs.map(function(m){return m.id})) + 1 : 1,
+    id: newId,
     to: to,
     title: title,
     body: body,
@@ -2309,12 +2335,32 @@ function sendMsg(to, title, body, operatorName, operatorDept, type, applicantNam
   };
   msgs.push(newMsg);
   localStorage.setItem(MSG_KEY, JSON.stringify(msgs));
-  // 追加单条消息到服务器（不覆盖已有消息）
+  // 追加单条消息到服务器（不覆盖已有消息），失败时重试一次
   fetch(API_BASE + '/api/messages/add', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify(newMsg)
-  }).catch(function(){});
+  }).then(function(resp){
+    if(!resp.ok){
+      // 服务器返回错误，重试一次
+      setTimeout(function(){
+        fetch(API_BASE + '/api/messages/add', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(newMsg)
+        }).catch(function(){});
+      }, 2000);
+    }
+  }).catch(function(){
+    // 网络错误，重试一次
+    setTimeout(function(){
+      fetch(API_BASE + '/api/messages/add', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(newMsg)
+      }).catch(function(){});
+    }, 2000);
+  });
 }
 
 function openBroadcast(){
@@ -2757,6 +2803,8 @@ var _msgPage = null;
 function getMsgPage(){ if(!_msgPage) _msgPage = document.getElementById('msgPage'); return _msgPage; }
 function openMessages(){
   var p = getMsgPage();
+  // 先从云端同步消息，再渲染
+  syncMessagesFromCloud();
   renderMessages();
   markAllRead();
   setTimeout(updateMsgBadge, 100);

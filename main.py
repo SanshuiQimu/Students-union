@@ -68,7 +68,7 @@ def init_db():
             try:
                 if not s.query(_Meta).filter_by(key='initialized').first():
                     defaults = [
-                        {"id":1,"name":"林可翔","dept":"办公室","position":"处长","duty":"统筹协调各部门工作、会议组织","joinDate":"2026-04-01","leaveDate":"","passwordHash":"d5a5d426cd7786950e59b8a714186ca384da908a40c7b7bfdccfbbb64b668df7"}
+                        {"id":1,"name":"林可翔","dept":"办公室","position":"处长","duty":"统筹协调各部门工作、会议组织","joinDate":"2026-04-01","leaveDate":"","passwordHash":"123456"}
                     ]
                     for m in defaults:
                         s.add(_Member(data=json.dumps(m, ensure_ascii=False)))
@@ -83,7 +83,7 @@ def init_db():
             conn.execute('''CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT)''')
             if not conn.execute("SELECT value FROM meta WHERE key='initialized'").fetchone():
                 defaults = [
-                    {"id":1,"name":"林可翔","dept":"办公室","position":"处长","duty":"统筹协调各部门工作、会议组织","joinDate":"2026-04-01","leaveDate":"","passwordHash":"d5a5d426cd7786950e59b8a714186ca384da908a40c7b7bfdccfbbb64b668df7"}
+                    {"id":1,"name":"林可翔","dept":"办公室","position":"处长","duty":"统筹协调各部门工作、会议组织","joinDate":"2026-04-01","leaveDate":"","passwordHash":"123456"}
                 ]
                 for m in defaults:
                     conn.execute("INSERT INTO members (data) VALUES (?)", (json.dumps(m, ensure_ascii=False),))
@@ -158,11 +158,10 @@ def _sync_members_to_supabase(members):
                 # 密码变更仅通过 /api/auth/update 端点显式执行
                 to_update.append((name, user_data))
             else:
-                # 新用户：必须包含 password_hash
+                # 新用户：密码明文存储，默认 123456
                 pwd_hash = m.get('passwordHash', '')
-                if not pwd_hash:
-                    salted = 'SU_HG_2025_LGKJ' + '123456'
-                    pwd_hash = hashlib.sha256(salted.encode('utf-8')).hexdigest()
+                if not pwd_hash or _is_old_hash(pwd_hash):
+                    pwd_hash = '123456'
                 user_data['password_hash'] = pwd_hash
                 to_insert.append(user_data)
 
@@ -552,23 +551,27 @@ _use_supabase = bool(SUPABASE_URL and SUPABASE_KEY)
 if _use_supabase:
     print(f"[Auth] Supabase 认证已启用: {SUPABASE_URL}")
 
-# PBKDF2 密码哈希（Python 内置，无需外部依赖）
+# 密码明文存储（不再使用哈希，彻底避免前后端哈希不一致问题）
 def _hash_password(password):
-    salt = secrets.token_hex(16)
-    dk = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt.encode('utf-8'), 100000)
-    return f"pbkdf2${salt}${dk.hex()}"
+    return password
+
+def _is_old_hash(s):
+    """检测是否为旧SHA-256哈希格式（64位十六进制字符串）"""
+    if not s or not isinstance(s, str):
+        return False
+    return len(s) == 64 and all(c in '0123456789abcdefABCDEF' for c in s)
 
 def _verify_password(password, stored):
     try:
-        if stored.startswith('pbkdf2$'):
-            parts = stored.split('$')
-            salt = parts[1]
-            expected = parts[2]
-            dk = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt.encode('utf-8'), 100000)
-            return secrets.compare_digest(dk.hex(), expected)
-        # 兼容前端带盐 SHA-256 哈希（HASH_SALT = 'SU_HG_2025_LGKJ'）
-        salted = 'SU_HG_2025_LGKJ' + password
-        return secrets.compare_digest(hashlib.sha256(salted.encode('utf-8')).hexdigest(), stored)
+        if not stored:
+            # 数据库中没有密码，默认为 123456
+            return password == '123456'
+        # 检测旧哈希格式（SHA-256：64位十六进制字符串）
+        if _is_old_hash(str(stored)):
+            # 旧哈希格式：统一用默认密码 123456 兜底
+            return password == '123456'
+        # 明文比较
+        return secrets.compare_digest(str(password), str(stored))
     except Exception:
         return False
 
@@ -765,6 +768,30 @@ def auth_init():
     }
     _supabase_post('user_account', default)
     return jsonify({'ok': True, 'message': '默认管理员已创建（用户名: 林可翔，密码: 123456）'})
+
+@app.route('/api/auth/migrate-passwords', methods=['POST'])
+def migrate_passwords():
+    """一次性迁移：将所有 Supabase 用户密码重置为明文 123456"""
+    if not _use_supabase:
+        return jsonify({'error': 'Supabase 未配置'}), 503
+    try:
+        users = _supabase_get('user_account', 'select=username,password_hash')
+        if not users:
+            return jsonify({'ok': True, 'migrated': 0, 'message': '无用户需要迁移'})
+        migrated = 0
+        for u in users:
+            username = u.get('username', '')
+            stored = u.get('password_hash', '')
+            # 如果已经是明文（非64位hex），跳过
+            if not _is_old_hash(stored) and stored:
+                continue  # 已经是明文，无需迁移
+            # 重置为明文 123456
+            encoded = urllib.parse.quote(username, safe='')
+            _supabase_patch('user_account', f"username=eq.{encoded}", {'password_hash': '123456'})
+            migrated += 1
+        return jsonify({'ok': True, 'migrated': migrated, 'total': len(users)})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 # ===== API: VERSION MANAGEMENT =====
 def _get_versions():

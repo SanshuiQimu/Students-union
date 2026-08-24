@@ -1363,7 +1363,7 @@ function _setupLoginSession(found, isDefaultPwd, selectedDept){
   }
 
   if(selectedRole === '成员'){
-    currentUser = {name:found.name, role:'成员', dept:useDept, position:usePosition, isAdmin:false, isDeptAdmin:false, isMember:true};
+    currentUser = {name:found.name, role:'成员', dept:useDept, position:usePosition, isAdmin:false, isDeptAdmin:false, isMember:true, concurrentDept: found.concurrentDept || '', isPresidium: found.dept === '主席团'};
   } else {
     const isPresident = usePosition === '会长' || usePosition === '副会长';
     const isSecretaryAdmin = isPresident || (useDept === '办公室' && (usePosition === '处长' || usePosition === '副处长' || usePosition === '部长'));
@@ -1372,7 +1372,9 @@ function _setupLoginSession(found, isDefaultPwd, selectedDept){
       name: found.name, role: usePosition, dept: useDept, position: usePosition,
       isAdmin: isSecretaryAdmin,
       isDeptAdmin: !isSecretaryAdmin && isDeptMinister,
-      isMember: false
+      isMember: false,
+      concurrentDept: found.concurrentDept || '',
+      isPresidium: found.dept === '主席团'
     };
   }
 
@@ -2091,18 +2093,42 @@ function saveMember(){
   renderTable();
 }
 
-// ===== 开除（提交审批） =====
+// ===== 开除（提交审批 / 主席团直接开除） =====
 function confirmDelete(id, name){
   const m = members.find(x => x.id === id);
   if(!canManage(m)){ showToast('error','无权限开除该成员'); return; }
+
+  // 主席团有权直接开除，无需审批
+  if(currentUser.isPresidium){
+    document.getElementById('confirmMsg').innerHTML = `确定要直接开除「<b>${name}</b>」吗？<br><span style="font-size:12px;color:var(--text-secondary);margin-top:4px;display:inline-block">主席团直接开除，无需办公室审批，立即生效</span>`;
+    document.getElementById('confirmModal').querySelector('.modal-header h2').textContent = '直接开除（主席团权限）';
+    document.getElementById('confirmDelBtn').textContent = '确认开除';
+    document.getElementById('confirmDelBtn').className = 'btn btn-danger';
+    document.getElementById('confirmModal').classList.add('show');
+    document.getElementById('confirmDelBtn').onclick = () => {
+      directDismiss(id, name);
+      closeConfirm();
+    };
+    return;
+  }
+
   // 检查是否已有待审批的开除申请
   var msgs = loadMessages();
-  var hasPending = msgs.some(function(msg){
+  var pendingMsgs = msgs.filter(function(msg){
     return msg.type === 'dismiss-apply' && msg.applicant && msg.applicant !== '' && String(msg.memberId) === String(id) && !msg.handled;
   });
-  if(hasPending){
-    showToast('error', '该成员已有开除申请待审批');
-    return;
+  if(pendingMsgs.length > 0){
+    // 标记旧的开除申请消息为已处理，避免消息堆积，允许重新提交
+    pendingMsgs.forEach(function(pm){
+      pm.handled = true;
+    });
+    localStorage.setItem(MSG_KEY, JSON.stringify(msgs));
+    fetch(API_BASE + '/api/messages/handle', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({msgId: pendingMsgs[0].id})
+    }).catch(function(){});
+    showToast('info', '已清理旧的开除申请，正在重新提交');
   }
   document.getElementById('confirmMsg').innerHTML = `确定要开除「<b>${name}</b>」吗？<br><span style="font-size:12px;color:var(--text-secondary);margin-top:4px;display:inline-block">提交后将发送至办公室审批，审批通过后该成员将被开除</span>`;
   document.getElementById('confirmModal').querySelector('.modal-header h2').textContent = '确认开除';
@@ -2113,6 +2139,58 @@ function confirmDelete(id, name){
     submitDismissApply(id, name);
     closeConfirm();
   };
+}
+
+// 主席团直接开除（无需审批）
+function directDismiss(memberId, memberName){
+  var m = members.find(x => x.id === memberId);
+  if(!m) return;
+  var dismissedDept = m.dept || '';
+  var dismissedPos = m.position || '';
+  // 清理该成员旧的待审批开除申请消息
+  var msgs = loadMessages();
+  var oldPending = msgs.filter(function(msg){
+    return msg.type === 'dismiss-apply' && String(msg.memberId) === String(memberId) && !msg.handled;
+  });
+  oldPending.forEach(function(pm){ pm.handled = true; });
+  if(oldPending.length > 0){
+    localStorage.setItem(MSG_KEY, JSON.stringify(msgs));
+    oldPending.forEach(function(pm){
+      fetch(API_BASE + '/api/messages/handle', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({msgId: pm.id})
+      }).catch(function(){});
+    });
+  }
+  // 直接调用后端DELETE删除云端记录（含Supabase）
+  fetch(API_BASE + '/api/member/' + memberId, { method: 'DELETE' })
+    .then(function(){
+      members = members.filter(function(x){ return String(x.id) !== String(memberId); });
+      saveData();
+      // 通知所有在任管理层同步数据
+      members.forEach(function(a){
+        if(a.name !== currentUser.name && !a.leaveDate){
+          var isMgr = a.position === '会长' || a.position === '副会长' ||
+                      a.position === '处长' || a.position === '副处长' ||
+                      a.position === '部长' || a.position === '副部长';
+          if(isMgr){
+            sendMsg(a.name, '成员已被开除 - ' + memberName,
+              currentUser.name + '（主席团）直接开除了「' + memberName + '」（' + dismissedDept + '/' + dismissedPos + '），请同步数据查看最新成员列表。',
+              currentUser.name, currentUser.dept, 'info');
+          }
+        }
+      });
+      updateStats();
+      renderDeptGrid();
+      renderTable();
+      updateMsgBadge();
+      showToast('success', '已直接开除 ' + memberName);
+    })
+    .catch(function(e){
+      console.error('DELETE失败:', e);
+      showToast('error', '开除失败，请稍后重试');
+    });
 }
 function submitDismissApply(memberId, memberName){
   var m = members.find(x => x.id === memberId);
@@ -2303,7 +2381,30 @@ function syncMessagesFromCloud(){
 }
 function getMyMessages(){
   var allMsgs = loadMessages();
-  return allMsgs.filter(function(m){ return m.to === currentUser.name; });
+  var myName = currentUser.name;
+  // 基本过滤：发送给我的消息
+  var mine = allMsgs.filter(function(m){ return m.to === myName; });
+  // 兼任部门消息：如果我有兼任部门，也接收该部门成员收到的消息
+  var myConcurrentDept = currentUser.concurrentDept || '';
+  if(myConcurrentDept){
+    var normConcurrent = normalizeDept(myConcurrentDept);
+    // 获取兼任部门所有在任成员的姓名
+    var concurrentDeptMembers = {};
+    members.forEach(function(m){
+      if(normalizeDept(m.dept) === normConcurrent && !m.leaveDate){
+        concurrentDeptMembers[m.name] = true;
+      }
+    });
+    // 补充：发给兼任部门成员但我尚未收到的消息
+    var mineIds = {};
+    mine.forEach(function(m){ mineIds[m.id] = true; });
+    allMsgs.forEach(function(m){
+      if(!mineIds[m.id] && concurrentDeptMembers[m.to]){
+        mine.push(m);
+      }
+    });
+  }
+  return mine;
 }
 function hasUnread(){
   return getMyMessages().some(function(m){ return !m.read; });
@@ -2411,13 +2512,13 @@ function sendTargetedMsg(){
     showToast('error', '请输入通知内容');
     return;
   }
-  // 统计该部门在任成员数
-  var targets = members.filter(function(m){ return m.dept === dept && !m.leaveDate; });
+  // 统计该部门在任成员（含兼任该部门的人员）
+  var targets = members.filter(function(m){ return (m.dept === dept || m.concurrentDept === dept) && !m.leaveDate; });
   if(targets.length === 0){
     showToast('error', '该部门没有在任成员');
     return;
   }
-  if(!confirm('确认发送给 ' + dept + ' 的 ' + targets.length + ' 名成员？')){
+  if(!confirm('确认发送给 ' + dept + ' 的 ' + targets.length + ' 名成员（含兼任）？')){
     return;
   }
   targets.forEach(function(m){

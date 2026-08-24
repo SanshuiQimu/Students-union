@@ -136,14 +136,9 @@ def _sync_members_to_supabase(members):
             name = m.get('name', '')
             if not name:
                 continue
-            pwd_hash = m.get('passwordHash', '')
-            if not pwd_hash:
-                # 必须使用与前端一致的带盐 SHA-256，否则 _verify_password 无法验证
-                salted = 'SU_HG_2025_LGKJ' + '123456'
-                pwd_hash = hashlib.sha256(salted.encode('utf-8')).hexdigest()
+            # 构建同步数据
             user_data = {
                 'username': name,
-                'password_hash': pwd_hash,
                 'name': name,
                 'dept': m.get('dept', ''),
                 'position': m.get('position', ''),
@@ -159,8 +154,16 @@ def _sync_members_to_supabase(members):
             if cp:
                 user_data['concurrent_position'] = cp
             if name in existing_names:
+                # 更新已有用户时【不包含 password_hash】，避免旧密码覆盖新密码
+                # 密码变更仅通过 /api/auth/update 端点显式执行
                 to_update.append((name, user_data))
             else:
+                # 新用户：必须包含 password_hash
+                pwd_hash = m.get('passwordHash', '')
+                if not pwd_hash:
+                    salted = 'SU_HG_2025_LGKJ' + '123456'
+                    pwd_hash = hashlib.sha256(salted.encode('utf-8')).hexdigest()
+                user_data['password_hash'] = pwd_hash
                 to_insert.append(user_data)
 
         # 批量插入新用户
@@ -355,8 +358,8 @@ def update_member(mid):
                 supa_data['join_date'] = data['joinDate']
             if 'leaveDate' in data:
                 supa_data['leave_date'] = data['leaveDate']
-            if 'passwordHash' in data:
-                supa_data['password_hash'] = data['passwordHash']
+            # 不在 update_member 中同步 password_hash，避免旧密码覆盖新密码
+            # 密码变更仅通过 /api/auth/update 端点显式执行
             if supa_data:
                 old_name = existing.get('name', '')
                 encoded_name = urllib.parse.quote(old_name, safe='')
@@ -727,7 +730,8 @@ def auth_update():
     if 'password' in data and data['password']:
         updates['password_hash'] = _hash_password(data['password'])
 
-    _supabase_patch('user_account', f"username=eq.{username}", updates)
+    encoded_username = urllib.parse.quote(username, safe='')
+    _supabase_patch('user_account', f"username=eq.{encoded_username}", updates)
     return jsonify({'ok': True})
 
 @app.route('/api/auth/delete', methods=['DELETE'])
@@ -736,7 +740,8 @@ def auth_delete():
         return jsonify({'error': 'Supabase 未配置'}), 503
     data = request.get_json(force=True)
     username = data.get('username', '')
-    _supabase_delete('user_account', f"username=eq.{username}")
+    encoded_username = urllib.parse.quote(username, safe='')
+    _supabase_delete('user_account', f"username=eq.{encoded_username}")
     return jsonify({'ok': True})
 
 @app.route('/api/auth/init', methods=['POST'])

@@ -2168,6 +2168,12 @@ function doResetPwd(id, name){
   const m = members.find(x => x.id === id);
   if(m){
     m.passwordHash = DEFAULT_PASSWORD_HASH;
+    // 直接调用 /api/auth/update 更新 Supabase 中的密码，避免全量同步时被旧数据覆盖
+    fetch(API_BASE + '/api/auth/update', {
+      method: 'PUT',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({username: m.name, password: '123456'})
+    }).catch(function(e){ console.warn('密码重置同步Supabase失败:', e); });
     saveData();
   }
   closeConfirm();

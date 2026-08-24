@@ -1307,7 +1307,14 @@ function doLoginSupabase(userData, rawPass){
     joinDate: userData.join_date || userData.joinDate || '',
     leaveDate: userData.leave_date || userData.leaveDate || ''
   };
-  // 从本地members数组补充兼任信息
+  // 先从登录返回数据中读取兼任信息（Supabase 的 snake_case 字段）
+  var cd = userData.concurrent_dept || userData.concurrentDept || '';
+  var cp = userData.concurrent_position || userData.concurrentPosition || '';
+  if(cd){
+    found.concurrentDept = normalizeDept(cd);
+    found.concurrentPosition = cp;
+  }
+  // 再从本地members数组补充兼任信息（如果本地有更新的数据）
   var mInfo = members.find(function(m){ return m.name === found.name; });
   if(mInfo && mInfo.concurrentDept){
     found.concurrentDept = mInfo.concurrentDept;
@@ -1343,7 +1350,7 @@ function _setupLoginSession(found, isDefaultPwd, selectedDept){
   // 确定使用哪个部门/职位
   var useDept = found.dept;
   var usePosition = found.position;
-  if(selectedDept === found.concurrentDept){
+  if(selectedDept && selectedDept === found.concurrentDept){
     useDept = found.concurrentDept;
     usePosition = found.concurrentPosition;
   }

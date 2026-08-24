@@ -147,7 +147,9 @@ def _sync_members_to_supabase(members):
                 'position': m.get('position', ''),
                 'duty': m.get('duty', ''),
                 'join_date': m.get('joinDate', ''),
-                'leave_date': m.get('leaveDate', '')
+                'leave_date': m.get('leaveDate', ''),
+                'concurrent_dept': m.get('concurrentDept', ''),
+                'concurrent_position': m.get('concurrentPosition', '')
             }
             if name in existing_names:
                 to_update.append((name, user_data))
@@ -190,7 +192,9 @@ def _load_members_from_supabase():
             'duty': u.get('duty', ''),
             'joinDate': u.get('join_date', ''),
             'leaveDate': u.get('leave_date', ''),
-            'passwordHash': u.get('password_hash', '')
+            'passwordHash': u.get('password_hash', ''),
+            'concurrentDept': u.get('concurrent_dept', ''),
+            'concurrentPosition': u.get('concurrent_position', '')
         })
     return result
 
@@ -289,6 +293,10 @@ def update_member(mid):
             for k in ['dept', 'position', 'duty', 'name']:
                 if k in data:
                     supa_data[k] = data[k]
+            if 'concurrentDept' in data:
+                supa_data['concurrent_dept'] = data['concurrentDept']
+            if 'concurrentPosition' in data:
+                supa_data['concurrent_position'] = data['concurrentPosition']
             if 'joinDate' in data:
                 supa_data['join_date'] = data['joinDate']
             if 'leaveDate' in data:
@@ -578,6 +586,8 @@ def auth_login():
         safe['dept'] = _normalize_dept(safe['dept'])
     if 'concurrentDept' in safe and safe['concurrentDept']:
         safe['concurrentDept'] = _normalize_dept(safe['concurrentDept'])
+    if 'concurrent_dept' in safe and safe['concurrent_dept']:
+        safe['concurrent_dept'] = _normalize_dept(safe['concurrent_dept'])
     return jsonify(safe)
 
 @app.route('/api/auth/register', methods=['POST'])
@@ -649,6 +659,10 @@ def auth_update():
         updates['join_date'] = data['joinDate']
     if 'leaveDate' in data:
         updates['leave_date'] = data['leaveDate']
+    if 'concurrentDept' in data:
+        updates['concurrent_dept'] = data['concurrentDept']
+    if 'concurrentPosition' in data:
+        updates['concurrent_position'] = data['concurrentPosition']
     if 'password' in data and data['password']:
         updates['password_hash'] = _hash_password(data['password'])
 

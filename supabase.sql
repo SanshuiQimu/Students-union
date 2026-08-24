@@ -14,8 +14,14 @@ CREATE TABLE IF NOT EXISTS user_account (
   duty TEXT DEFAULT '',
   join_date TEXT DEFAULT '',
   leave_date TEXT DEFAULT '',
+  concurrent_dept TEXT DEFAULT '',
+  concurrent_position TEXT DEFAULT '',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- 1.1 兼容已有表：如果表已存在但缺少兼任字段，则补充
+ALTER TABLE user_account ADD COLUMN IF NOT EXISTS concurrent_dept TEXT DEFAULT '';
+ALTER TABLE user_account ADD COLUMN IF NOT EXISTS concurrent_position TEXT DEFAULT '';
 
 -- 2. 启用行级安全 (RLS)
 ALTER TABLE user_account ENABLE ROW LEVEL SECURITY;

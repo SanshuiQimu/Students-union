@@ -584,9 +584,8 @@ def _supabase_headers():
     }
 
 def _supabase_request(method, path, body=None):
-    # 对路径中的中文进行 URL 编码
-    encoded_path = urllib.parse.quote(path, safe='=/&?')
-    url = f"{SUPABASE_URL}/rest/v1/{encoded_path}"
+    # 调用方已负责对中文用户名进行URL编码，此处不再重复编码（避免双重编码导致查询失败）
+    url = f"{SUPABASE_URL}/rest/v1/{path}"
     headers = _supabase_headers()
     data = json.dumps(body).encode('utf-8') if body else None
     req = urllib.request.Request(url, data=data, headers=headers, method=method)

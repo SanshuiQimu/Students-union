@@ -2102,7 +2102,7 @@ function confirmDelete(id, name){
     showToast('error', '该成员已有开除申请待审批');
     return;
   }
-  document.getElementById('confirmMsg').innerHTML = `确定要开除「<b>${name}</b>」吗？<br><span style="font-size:12px;color:var(--text-secondary);margin-top:4px;display:inline-block">提交后将发送至秘书部审批，审批通过后该成员将被开除</span>`;
+  document.getElementById('confirmMsg').innerHTML = `确定要开除「<b>${name}</b>」吗？<br><span style="font-size:12px;color:var(--text-secondary);margin-top:4px;display:inline-block">提交后将发送至办公室审批，审批通过后该成员将被开除</span>`;
   document.getElementById('confirmModal').querySelector('.modal-header h2').textContent = '确认开除';
   document.getElementById('confirmDelBtn').textContent = '提交开除申请';
   document.getElementById('confirmDelBtn').className = 'btn btn-danger';
@@ -2115,8 +2115,8 @@ function confirmDelete(id, name){
 function submitDismissApply(memberId, memberName){
   var m = members.find(x => x.id === memberId);
   if(!m) return;
-  // 给办公室所有成员发消息
-  var secretaries = members.filter(function(x){ return x.dept === '办公室' && !x.leaveDate; });
+  // 给办公室所有成员发消息（兼容旧部门名"秘书处"）
+  var secretaries = members.filter(function(x){ return normalizeDept(x.dept) === '办公室' && !x.leaveDate; });
   if(secretaries.length === 0){
     showToast('error', '办公室暂无在任成员，无法提交审批');
     return;
@@ -2128,14 +2128,14 @@ function submitDismissApply(memberId, memberName){
   });
   // 给申请人自己也发一条，方便追踪
   sendMsg(currentUser.name, '开除申请已提交 - ' + memberName,
-    '你提交的开除「' + memberName + '」的申请已发送至秘书部，请等待审批结果。',
+    '你提交的开除「' + memberName + '」的申请已发送至办公室，请等待审批结果。',
     currentUser.name, currentUser.dept, 'dismiss-pending', memberName);
   // 标记成员有待审批的开除申请
   if(!m.dismissPending) m.dismissPending = true;
   saveData();
   updateMsgBadge();
   renderTable();
-  showToast('success', '开除申请已提交至秘书部审批');
+  showToast('success', '开除申请已提交至办公室审批');
 }
 function closeConfirm(){ document.getElementById('confirmModal').classList.remove('show'); }
 
@@ -2715,8 +2715,8 @@ function submitBadgeApply(){
     setTimeout(function(){ errEl.style.display = 'none'; }, 3000);
     return;
   }
-  // 发送申请消息给办公室所有成员
-  var secretaries = members.filter(function(m){ return m.dept === '办公室'; });
+  // 发送申请消息给办公室所有成员（兼容旧部门名"秘书处"）
+  var secretaries = members.filter(function(m){ return normalizeDept(m.dept) === '办公室'; });
   if(!secretaries.length){
     errEl.textContent = '系统中未找到办公室成员，无法提交';
     errEl.style.display = 'block';
@@ -2778,7 +2778,7 @@ function renderMessages(){
   }
   // 最新消息在前
   var sorted = list.slice().reverse();
-  var isSecretary = currentUser.dept === '办公室';
+  var isSecretary = normalizeDept(currentUser.dept) === '办公室';
   container.innerHTML = sorted.map(function(m){
     var cls = m.read ? 'msg-item' : 'msg-item unread';
     var approveBtns = '';

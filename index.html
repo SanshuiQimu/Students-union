@@ -2908,35 +2908,42 @@ function handleDismissApprove(applicantName, memberId, msgId){
         markMsgHandled(msgId);
         return;
       }
-      // 执行开除：先调用后端DELETE删除云端记录（含Supabase）
+      var memberName = m.name || applicantName;
+      // 执行开除：先调用后端DELETE删除云端记录（含Supabase），必须等待完成
       fetch(API_BASE + '/api/member/' + memberId, { method: 'DELETE' })
-        .catch(function(e){ console.warn('DELETE同步失败:', e); });
-      // 从成员列表中移除
-      members = members.filter(function(x){ return String(x.id) !== String(memberId); });
-      saveData();
-      // 标记消息已处理
-      markMsgHandled(msgId);
-      // 通知申请人
-      sendMsg(applicantName,
-        '开除申请已通过 - ' + (m.name || applicantName),
-        '你提交的开除「' + (m.name||applicantName) + '」的申请已通过，该成员已被开除。',
-        currentUser.name, currentUser.dept, 'dismiss-result'
-      );
-      // 通知所有管理员同步数据
-      var admins = members.filter(function(x){ return x.isAdmin || x.isDeptAdmin; });
-      admins.forEach(function(a){
-        if(a.name !== currentUser.name && a.name !== applicantName){
-          sendMsg(a.name, '成员已被开除 - ' + (m.name||applicantName),
-            (m.name||applicantName) + ' 已被开除，请同步数据查看最新成员列表。',
-            currentUser.name, currentUser.dept, 'info');
-        }
-      });
-      updateStats();
-      renderDeptGrid();
-      renderTable();
-      updateMsgBadge();
-      renderMessages();
-      showToast('success', '已通过开除申请，' + (m.name||applicantName) + ' 已被开除');
+        .then(function(){
+          // DELETE 成功后，从成员列表中移除
+          members = members.filter(function(x){ return String(x.id) !== String(memberId); });
+          // 再保存到本地和云端（此时被开除的人已不在列表中）
+          saveData();
+          // 标记消息已处理
+          markMsgHandled(msgId);
+          // 通知申请人
+          sendMsg(applicantName,
+            '开除申请已通过 - ' + memberName,
+            '你提交的开除「' + memberName + '」的申请已通过，该成员已被开除。',
+            currentUser.name, currentUser.dept, 'dismiss-result'
+          );
+          // 通知所有管理员同步数据
+          var admins = members.filter(function(x){ return x.isAdmin || x.isDeptAdmin; });
+          admins.forEach(function(a){
+            if(a.name !== currentUser.name && a.name !== applicantName){
+              sendMsg(a.name, '成员已被开除 - ' + memberName,
+                memberName + ' 已被开除，请同步数据查看最新成员列表。',
+                currentUser.name, currentUser.dept, 'info');
+            }
+          });
+          updateStats();
+          renderDeptGrid();
+          renderTable();
+          updateMsgBadge();
+          renderMessages();
+          showToast('success', '已通过开除申请，' + memberName + ' 已被开除');
+        })
+        .catch(function(e){
+          console.error('DELETE失败:', e);
+          showToast('error', '开除失败，请稍后重试');
+        });
     })
     .catch(function(e){
       showToast('error', '网络错误，请稍后重试');

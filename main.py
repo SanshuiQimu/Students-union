@@ -167,9 +167,10 @@ def _sync_members_to_supabase(members):
         if to_insert:
             _supabase_post('user_account', to_insert)
 
-        # 逐条更新已有用户（Supabase PATCH 不支持批量）
+        # 逐条更新已有用户（Supabase PATCH 不支持批量，中文用户名需编码）
         for name, user_data in to_update:
-            _supabase_patch('user_account', f"username=eq.{name}", user_data)
+            encoded_name = urllib.parse.quote(name, safe='')
+            _supabase_patch('user_account', f"username=eq.{encoded_name}", user_data)
 
         # 不再在全量同步中删除用户，避免旧数据覆盖导致误删云端用户
         # 用户删除仅通过 DELETE /api/member/<id> 端点显式执行
@@ -358,7 +359,8 @@ def update_member(mid):
                 supa_data['password_hash'] = data['passwordHash']
             if supa_data:
                 old_name = existing.get('name', '')
-                _supabase_patch('user_account', f"username=eq.{old_name}", supa_data)
+                encoded_name = urllib.parse.quote(old_name, safe='')
+                _supabase_patch('user_account', f"username=eq.{encoded_name}", supa_data)
     return jsonify({"ok": True})
 
 @app.route('/api/member/<int:mid>', methods=['DELETE'])
@@ -384,10 +386,11 @@ def delete_member(mid):
             conn.execute("DELETE FROM members WHERE id=?", (mid,))
             conn.commit()
             conn.close()
-        # 同步删除 Supabase 记录
+        # 同步删除 Supabase 记录（对中文用户名进行 URL 编码）
         if _use_supabase and member_name:
-            _supabase_delete('user_account', f"username=eq.{member_name}")
-    return jsonify({"ok": True})
+            encoded_name = urllib.parse.quote(member_name, safe='')
+            _supabase_delete('user_account', f"username=eq.{encoded_name}")
+    return jsonify({"ok": True, "deleted": member_name})
 
 # ===== API: MESSAGES =====
 @app.route('/api/messages', methods=['GET'])
@@ -624,7 +627,7 @@ def auth_login():
     if not username or not password:
         return jsonify({'error': '请输入用户名和密码'}), 400
 
-    users = _supabase_get('user_account', f"username=eq.{username}&select=*")
+    users = _supabase_get('user_account', f"username=eq.{urllib.parse.quote(username, safe='')}&select=*")
     if not users:
         return jsonify({'error': '用户名或密码错误'}), 401
 
@@ -660,7 +663,7 @@ def auth_register():
         return jsonify({'error': '用户名和姓名不能为空'}), 400
 
     # 检查是否已存在
-    existing = _supabase_get('user_account', f"username=eq.{username}&select=id")
+    existing = _supabase_get('user_account', f"username=eq.{urllib.parse.quote(username, safe='')}&select=id")
     if existing:
         return jsonify({'error': '用户名已存在'}), 409
 

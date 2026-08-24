@@ -218,6 +218,37 @@ def static_files(path):
     return send_from_directory(os.path.dirname(os.path.abspath(__file__)), path)
 
 # ===== API: MEMBERS =====
+
+# 兼任数据编码/解码：因为 Supabase 表没有 concurrent_dept 列，
+# 将兼任数据编码到 duty 字段中，格式: "原始duty值||CD:兼任部门|兼任职位"
+_CD_SEPARATOR = '||CD:'
+_CD_PREFIX = 'CD:'
+
+def _encode_duty(duty, concurrent_dept, concurrent_position):
+    """将兼任数据编码到 duty 字段"""
+    base_duty = duty or ''
+    # 去除旧的编码数据
+    if _CD_SEPARATOR in base_duty:
+        base_duty = base_duty.split(_CD_SEPARATOR)[0]
+    if concurrent_dept:
+        return f"{base_duty}{_CD_SEPARATOR}{concurrent_dept}|{concurrent_position or ''}"
+    return base_duty
+
+def _decode_duty(duty_field):
+    """从 duty 字段解析出 (duty, concurrent_dept, concurrent_position)"""
+    raw = duty_field or ''
+    if _CD_SEPARATOR in raw:
+        parts = raw.split(_CD_SEPARATOR, 1)
+        base_duty = parts[0]
+        cd_part = parts[1]
+        if cd_part.startswith(_CD_PREFIX):
+            cd_part = cd_part[len(_CD_PREFIX):]
+        cd_fields = cd_part.split('|', 1)
+        concurrent_dept = cd_fields[0] if len(cd_fields) > 0 else ''
+        concurrent_position = cd_fields[1] if len(cd_fields) > 1 else ''
+        return base_duty, concurrent_dept, concurrent_position
+    return raw, '', ''
+
 def _sync_members_to_supabase(members):
     """将成员列表批量同步到 Supabase user_account 表（插入/更新/安全删除）"""
     if not _use_supabase:
@@ -235,23 +266,24 @@ def _sync_members_to_supabase(members):
             if not name:
                 continue
             incoming_names.add(name)
-            # 构建同步数据：兼任字段始终包含（含空值），确保清除旧数据
+            # 构建同步数据：兼任数据编码到 duty 字段（不使用 concurrent_dept 列）
+            encoded_duty = _encode_duty(
+                m.get('duty', ''),
+                m.get('concurrentDept', ''),
+                m.get('concurrentPosition', '')
+            )
             user_data = {
                 'username': name,
                 'name': name,
                 'dept': m.get('dept', ''),
                 'position': m.get('position', ''),
-                'duty': m.get('duty', ''),
+                'duty': encoded_duty,
                 'join_date': m.get('joinDate', ''),
-                'leave_date': m.get('leaveDate', ''),
-                'concurrent_dept': m.get('concurrentDept', ''),
-                'concurrent_position': m.get('concurrentPosition', '')
+                'leave_date': m.get('leaveDate', '')
             }
             if name in existing_names:
-                # 更新已有用户时【不包含 password_hash】，避免旧密码覆盖新密码
                 to_update.append((name, user_data))
             else:
-                # 新用户：密码明文存储，默认 123456
                 pwd_hash = m.get('passwordHash', '')
                 if not pwd_hash or _is_old_hash(pwd_hash):
                     pwd_hash = '123456'
@@ -262,14 +294,12 @@ def _sync_members_to_supabase(members):
         if to_insert:
             _supabase_post('user_account', to_insert)
 
-        # 逐条更新已有用户（Supabase PATCH 不支持批量，中文用户名需编码）
+        # 逐条更新已有用户
         for name, user_data in to_update:
             encoded_name = urllib.parse.quote(name, safe='')
             _supabase_patch('user_account', f"username=eq.{encoded_name}", user_data)
 
-        # 安全删除：Supabase 中存在但不在传入列表中的用户，予以删除
-        # 安全条件：传入列表不为空，且传入人数 >= Supabase 现有人数的 50%
-        # 防止旧客户端用不全的数据覆盖导致误删
+        # 安全删除
         deleted_count = 0
         if incoming_names and len(existing_names) > 0:
             if len(incoming_names) >= len(existing_names) * 0.5:
@@ -285,7 +315,7 @@ def _sync_members_to_supabase(members):
         return {'synced': False, 'reason': str(e)}
 
 def _load_members_from_supabase():
-    """从 Supabase 加载成员列表"""
+    """从 Supabase 加载成员列表，从 duty 字段解码兼任数据"""
     if not _use_supabase:
         return None
     users = _supabase_get('user_account', 'select=*')
@@ -293,17 +323,19 @@ def _load_members_from_supabase():
         return []
     result = []
     for u in users:
+        # 从 duty 字段解码兼任数据
+        duty, concurrent_dept, concurrent_position = _decode_duty(u.get('duty', ''))
         result.append({
             'id': len(result) + 1,
             'name': u.get('name', ''),
             'dept': u.get('dept', ''),
             'position': u.get('position', ''),
-            'duty': u.get('duty', ''),
+            'duty': duty,
             'joinDate': u.get('join_date', ''),
             'leaveDate': u.get('leave_date', ''),
             'passwordHash': u.get('password_hash', ''),
-            'concurrentDept': u.get('concurrent_dept', ''),
-            'concurrentPosition': u.get('concurrent_position', '')
+            'concurrentDept': concurrent_dept,
+            'concurrentPosition': concurrent_position
         })
     return result
 
@@ -322,37 +354,10 @@ def _normalize_member(m):
 @app.route('/api/members', methods=['GET'])
 def get_members():
     with _lock:
-        # 优先从 Supabase 加载
+        # 优先从 Supabase 加载（兼任数据已编码在 duty 字段中，无需本地覆盖）
         if _use_supabase:
             data = _load_members_from_supabase()
             if data is not None:
-                # 合并本地 SQLite/PG 中的兼任数据（Supabase 可能缺少 concurrent 列）
-                local_map = {}
-                if _use_pg:
-                    s = _Session()
-                    try:
-                        rows = s.query(_Member).order_by(_Member.id).all()
-                        for r in rows:
-                            lm = json.loads(r.data)
-                            if lm.get('name'):
-                                local_map[lm['name']] = lm
-                    finally:
-                        s.close()
-                else:
-                    conn = _sqlite_db()
-                    rows = conn.execute("SELECT data FROM members ORDER BY id").fetchall()
-                    conn.close()
-                    for r in rows:
-                        lm = json.loads(r['data'])
-                        if lm.get('name'):
-                            local_map[lm['name']] = lm
-                # 用本地数据覆盖 Supabase 返回的兼任字段（本地数据更准确）
-                for m in data:
-                    lm = local_map.get(m.get('name', ''))
-                    if lm:
-                        # 兼任字段：本地有值则覆盖 Supabase，本地为空则清空 Supabase
-                        m['concurrentDept'] = lm.get('concurrentDept', '')
-                        m['concurrentPosition'] = lm.get('concurrentPosition', '')
                 return jsonify([_normalize_member(m) for m in data])
         # 回退 SQLite
         if _use_pg:
@@ -785,13 +790,14 @@ def auth_login():
 
     # 返回用户数据（不含密码哈希）
     safe = {k: v for k, v in user.items() if k != 'password_hash'}
+    # 从 duty 字段解码兼任数据
+    duty, cd, cp = _decode_duty(user.get('duty', ''))
+    safe['duty'] = duty
+    safe['concurrentDept'] = _normalize_dept(cd) if cd else ''
+    safe['concurrentPosition'] = cp
     # 规范化部门名（旧名→新名）
     if 'dept' in safe and safe['dept']:
         safe['dept'] = _normalize_dept(safe['dept'])
-    if 'concurrentDept' in safe and safe['concurrentDept']:
-        safe['concurrentDept'] = _normalize_dept(safe['concurrentDept'])
-    if 'concurrent_dept' in safe and safe['concurrent_dept']:
-        safe['concurrent_dept'] = _normalize_dept(safe['concurrent_dept'])
     return jsonify(safe)
 
 @app.route('/api/auth/register', methods=['POST'])
@@ -821,7 +827,7 @@ def auth_register():
         'name': name,
         'dept': dept,
         'position': position,
-        'duty': duty,
+        'duty': _encode_duty(duty, data.get('concurrentDept', ''), data.get('concurrentPosition', '')),
         'join_date': join_date,
         'leave_date': ''
     }
@@ -834,23 +840,22 @@ def auth_register():
 def auth_users():
     if not _use_supabase:
         return jsonify([])
-    # 先尝试带兼任字段的查询，失败则回退不带兼任字段（兼容旧表）
-    users = _supabase_get('user_account', 'select=*,concurrent_dept,concurrent_position&order=created_at.asc')
-    if not users:
-        users = _supabase_get('user_account', 'select=*&order=created_at.asc')
+    users = _supabase_get('user_account', 'select=*&order=created_at.asc')
     result = []
     for u in users:
+        # 从 duty 字段解码兼任数据
+        duty, cd, cp = _decode_duty(u.get('duty', ''))
         result.append({
             'id': u.get('id'),
             'username': u.get('username'),
             'name': u.get('name'),
             'dept': u.get('dept', ''),
             'position': u.get('position', ''),
-            'duty': u.get('duty', ''),
+            'duty': duty,
             'joinDate': u.get('join_date', ''),
             'leaveDate': u.get('leave_date', ''),
-            'concurrentDept': u.get('concurrent_dept', ''),
-            'concurrentPosition': u.get('concurrent_position', '')
+            'concurrentDept': cd,
+            'concurrentPosition': cp
         })
     return jsonify(result)
 
@@ -860,22 +865,38 @@ def auth_update():
         return jsonify({'error': 'Supabase 未配置'}), 503
     data = request.get_json(force=True)
     username = data.get('username', '')
+
+    # 获取现有用户数据（需要读取当前 duty 以正确编码兼任数据）
+    encoded_username = urllib.parse.quote(username, safe='')
+    existing_user = _supabase_get('user_account', f"username=eq.{encoded_username}&select=*&limit=1")
+    current_duty = ''
+    if existing_user and len(existing_user) > 0:
+        current_duty = existing_user[0].get('duty', '')
+
+    # 解析当前的 duty 和兼任数据
+    base_duty, current_cd, current_cp = _decode_duty(current_duty)
+
+    # 构建更新数据
     updates = {}
-    for k in ['name', 'dept', 'position', 'duty']:
+    for k in ['name', 'dept', 'position']:
         if k in data:
             updates[k] = data[k]
+
+    # duty 字段：可能直接更新 duty，也可能更新兼任数据
+    new_duty = data.get('duty', base_duty)
+    new_cd = data.get('concurrentDept', current_cd) if 'concurrentDept' in data else current_cd
+    new_cp = data.get('concurrentPosition', current_cp) if 'concurrentPosition' in data else current_cp
+
+    # 编码到 duty 字段
+    updates['duty'] = _encode_duty(new_duty, new_cd, new_cp)
+
     if 'joinDate' in data:
         updates['join_date'] = data['joinDate']
     if 'leaveDate' in data:
         updates['leave_date'] = data['leaveDate']
-    if 'concurrentDept' in data:
-        updates['concurrent_dept'] = data['concurrentDept']
-    if 'concurrentPosition' in data:
-        updates['concurrent_position'] = data['concurrentPosition']
     if 'password' in data and data['password']:
         updates['password_hash'] = _hash_password(data['password'])
 
-    encoded_username = urllib.parse.quote(username, safe='')
     _supabase_patch('user_account', f"username=eq.{encoded_username}", updates)
     return jsonify({'ok': True})
 
